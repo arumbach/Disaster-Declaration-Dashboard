@@ -331,7 +331,7 @@
                 <div class="subtitle">Across all resolved 2025+ requests</div>
             </div>
             <div class="indicator-card avg historical">
-                <div class="label">Avg. Days to Decision (2000–2023)</div>
+                <div class="label">Avg. Days to Decision (2000–2024)</div>
                 <div class="value" id="avgDaysHistorical">--</div>
                 <div class="subtitle">Historical baseline</div>
             </div>
@@ -341,7 +341,7 @@
                 <div class="subtitle" id="denialRateSub">Of all resolved requests</div>
             </div>
             <div class="indicator-card denial historical">
-                <div class="label">Denial Rate (2000–2023)</div>
+                <div class="label">Denial Rate (2000–2024)</div>
                 <div class="value" id="denialRateHistorical">--</div>
                 <div class="subtitle" id="denialRateHistSub">Historical baseline</div>
             </div>
@@ -409,9 +409,9 @@
     const APPROVED_URL = `${API_BASE}/v1/FemaWebDisasterDeclarations?$filter=declarationDate gt '2024-12-31' and declarationType eq 'Major Disaster'&$top=1000`;
     const DENIED_URL = `${API_BASE}/v1/DeclarationDenials?$filter=declarationRequestDate gt '2024-12-31' and declarationRequestType eq 'Major Disaster'&$top=1000`;
 
-    // Historical data URLs (2000-2023) — only fetch date fields for efficiency
-    const HIST_APPROVED_BASE = `${API_BASE}/v1/FemaWebDisasterDeclarations?$filter=declarationDate gt '1999-12-31' and declarationDate lt '2024-01-01' and declarationType eq 'Major Disaster'&$select=declarationRequestDate,declarationDate&$top=1000`;
-    const HIST_DENIED_URL = `${API_BASE}/v1/DeclarationDenials?$filter=declarationRequestDate gt '1999-12-31' and declarationRequestDate lt '2024-01-01' and declarationRequestType eq 'Major Disaster'&$select=declarationRequestDate,requestStatusDate&$top=1000`;
+    // Historical data URLs (2000-2024) — only fetch date fields for efficiency
+    const HIST_APPROVED_BASE = `${API_BASE}/v1/FemaWebDisasterDeclarations?$filter=declarationDate gt '1999-12-31' and declarationDate lt '2025-01-01' and declarationType eq 'Major Disaster'&$select=declarationRequestDate,declarationDate&$top=1000`;
+    const HIST_DENIED_URL = `${API_BASE}/v1/DeclarationDenials?$filter=declarationRequestDate gt '1999-12-31' and declarationRequestDate lt '2025-01-01' and declarationRequestType eq 'Major Disaster'&$select=declarationRequestDate,requestStatusDate&$top=1000`;
 
     let allData = [];
     let filteredData = [];
@@ -805,7 +805,7 @@
             if (historicalAvg !== null) {
                 document.getElementById('avgDaysHistorical').textContent = historicalAvg.toFixed(1);
                 document.querySelector('#avgDaysHistorical').closest('.indicator-card').querySelector('.subtitle').textContent =
-                    `Based on ${histApproved.length + histDenied.length} requests (2000–2023)`;
+                    `Based on ${histApproved.length + histDenied.length} requests (2000–2024)`;
             } else {
                 document.getElementById('avgDaysHistorical').textContent = '—';
             }
