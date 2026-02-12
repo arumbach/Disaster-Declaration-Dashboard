@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FEMA Disaster Declaration Dashboard (2025+)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <style>
+        .fema-dashboard {
+            --fema-blue: #003366;
+            --fema-blue-light: #004488;
+            --green: #28a745;
+            --green-bg: #d4edda;
+            --red: #dc3545;
+            --red-bg: #f8d7da;
+            --yellow: #ffc107;
+            --yellow-bg: #fff3cd;
+            --gray-50: #f8f9fa;
+            --gray-100: #e9ecef;
+            --gray-200: #dee2e6;
+            --gray-600: #6c757d;
+            --gray-800: #343a40;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            color: var(--gray-800);
+            margin: 0;
+            padding: 0;
+            background: var(--gray-50);
+            line-height: 1.5;
+        }
+
+        .fema-dashboard * { box-sizing: border-box; }
+
+        .fema-dashboard .header {
+            background: var(--fema-blue);
+            color: white;
+            padding: 20px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .fema-dashboard .header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .fema-dashboard .header-stats {
+            display: flex;
+            gap: 24px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .fema-dashboard .header-stats span {
+            white-space: nowrap;
+        }
+
+        .fema-dashboard .content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .fema-dashboard .indicators {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .fema-dashboard .indicator-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid var(--fema-blue);
+        }
+
+        .fema-dashboard .indicator-card.open {
+            border-left-color: var(--yellow);
+        }
+
+        .fema-dashboard .indicator-card.avg {
+            border-left-color: var(--fema-blue);
+        }
+
+        .fema-dashboard .indicator-card.historical {
+            border-left-color: var(--gray-600);
+        }
+
+        .fema-dashboard .indicator-card.denial {
+            border-left-color: var(--red);
+        }
+
+        .fema-dashboard .indicator-card .value-suffix {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .fema-dashboard .indicator-card .delta {
+            display: inline-block;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .fema-dashboard .indicator-card .delta.up {
+            color: var(--red);
+        }
+
+        .fema-dashboard .indicator-card .delta.down {
+            color: var(--green);
+        }
+
+        .fema-dashboard .indicator-card .label {
+            font-size: 13px;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .fema-dashboard .indicator-card .value {
+            font-size: 36px;
+            font-weight: 700;
+            color: var(--gray-800);
+        }
+
+        .fema-dashboard .indicator-card .subtitle {
+            font-size: 12px;
+            color: var(--gray-600);
+            margin-top: 2px;
+        }
+
+        .fema-dashboard .section {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .fema-dashboard .section-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .fema-dashboard .chart-container {
+            padding: 16px 24px 24px;
+            position: relative;
+            min-height: 300px;
+        }
+
+        .fema-dashboard .filters {
+            display: flex;
+            gap: 12px;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .fema-dashboard .filters input,
+        .fema-dashboard .filters select {
+            padding: 6px 12px;
+            border: 1px solid var(--gray-200);
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+            background: white;
+        }
+
+        .fema-dashboard .filters input { min-width: 200px; }
+
+        .fema-dashboard table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .fema-dashboard thead th {
+            text-align: left;
+            padding: 10px 16px;
+            background: var(--gray-50);
+            border-bottom: 2px solid var(--gray-200);
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+
+        .fema-dashboard thead th:hover { background: var(--gray-100); }
+
+        .fema-dashboard thead th .sort-arrow {
+            margin-left: 4px;
+            font-size: 10px;
+            opacity: 0.3;
+        }
+
+        .fema-dashboard thead th .sort-arrow.active { opacity: 1; }
+
+        .fema-dashboard tbody tr {
+            border-bottom: 1px solid var(--gray-100);
+        }
+
+        .fema-dashboard tbody tr:hover { background: var(--gray-50); }
+
+        .fema-dashboard tbody td {
+            padding: 10px 16px;
+        }
+
+        .fema-dashboard .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .fema-dashboard .badge.approved {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+
+        .fema-dashboard .badge.denied {
+            background: var(--red-bg);
+            color: var(--red);
+        }
+
+        .fema-dashboard .badge.pending {
+            background: var(--yellow-bg);
+            color: #856404;
+        }
+
+        .fema-dashboard .days-bar {
+            display: inline-block;
+            height: 8px;
+            border-radius: 4px;
+            min-width: 4px;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        .fema-dashboard .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-600);
+        }
+
+        .fema-dashboard .loading .spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--fema-blue);
+            border-radius: 50%;
+            animation: fema-spin 0.8s linear infinite;
+        }
+
+        @keyframes fema-spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .fema-dashboard .error {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--red);
+        }
+
+        .fema-dashboard .no-data {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--gray-600);
+        }
+
+        .fema-dashboard .data-note {
+            font-size: 12px;
+            color: var(--gray-600);
+            padding: 12px 24px;
+            border-top: 1px solid var(--gray-100);
+        }
+
+        .fema-dashboard .disclaimer {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            border-radius: 8px;
+            padding: 14px 20px;
+            margin-bottom: 24px;
+            font-size: 13px;
+            color: #5d4037;
+            line-height: 1.6;
+        }
+
+        .fema-dashboard .disclaimer strong {
+            color: #e65100;
+        }
+
+        @media (max-width: 768px) {
+            .fema-dashboard .header { padding: 16px; }
+            .fema-dashboard .header h1 { font-size: 18px; }
+            .fema-dashboard .content { padding: 12px; }
+            .fema-dashboard .filters { flex-direction: column; }
+            .fema-dashboard .filters input { min-width: unset; width: 100%; }
+            .fema-dashboard table { font-size: 12px; }
+            .fema-dashboard tbody td,
+            .fema-dashboard thead th { padding: 8px 10px; }
+        }
+    </style>
+</head>
+<body>
+<div class="fema-dashboard" id="femaDashboard">
+    <div class="header">
+        <h1>FEMA Disaster Declaration Dashboard (2025+)</h1>
+        <div class="header-stats" id="headerStats">
+            <span>Loading...</span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="indicators">
+            <div class="indicator-card avg">
+                <div class="label">Avg. Days to Decision (2025+)</div>
+                <div class="value" id="avgDays">--</div>
+                <div class="subtitle">Across all resolved 2025+ requests</div>
+            </div>
+            <div class="indicator-card avg historical">
+                <div class="label">Avg. Days to Decision (2000–2023)</div>
+                <div class="value" id="avgDaysHistorical">--</div>
+                <div class="subtitle">Historical baseline</div>
+            </div>
+            <div class="indicator-card denial">
+                <div class="label">Denial Rate (2025+)</div>
+                <div class="value" id="denialRate">--</div>
+                <div class="subtitle" id="denialRateSub">Of all resolved requests</div>
+            </div>
+            <div class="indicator-card denial historical">
+                <div class="label">Denial Rate (2000–2023)</div>
+                <div class="value" id="denialRateHistorical">--</div>
+                <div class="subtitle" id="denialRateHistSub">Historical baseline</div>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            <strong>Data Note:</strong> This dashboard sources data from OpenFEMA, which only publishes declaration requests after a final decision has been reached.
+            Requests that are still pending review, under appeal, or awaiting a Presidential decision do not appear in the public data.
+            Some recently denied requests may also experience a lag before being added to the dataset.
+            As a result, the totals shown here may undercount the actual number of active declaration requests.
+        </div>
+
+        <div class="section">
+            <div class="section-header">Processing Time by Request (Days from Request to Decision)</div>
+            <div class="chart-container">
+                <div class="loading" id="chartLoading">
+                    <div class="spinner"></div>
+                    <p>Loading data from OpenFEMA...</p>
+                </div>
+                <canvas id="processingChart" style="display:none;"></canvas>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">All Declaration Requests</div>
+            <div class="filters">
+                <input type="text" id="searchInput" placeholder="Search by state, incident, or title...">
+                <select id="statusFilter">
+                    <option value="all">All Statuses</option>
+                    <option value="approved">Approved</option>
+                    <option value="denied">Denied</option>
+                </select>
+                <select id="stateFilter">
+                    <option value="all">All States</option>
+                </select>
+            </div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th data-sort="state">State <span class="sort-arrow">&#9650;&#9660;</span></th>
+                            <th data-sort="title">Incident / Title <span class="sort-arrow">&#9650;&#9660;</span></th>
+                            <th data-sort="type">Type <span class="sort-arrow">&#9650;&#9660;</span></th>
+                            <th data-sort="requestDate">Request Date <span class="sort-arrow">&#9650;&#9660;</span></th>
+                            <th data-sort="decisionDate">Decision Date <span class="sort-arrow">&#9650;&#9660;</span></th>
+                            <th data-sort="days">Days <span class="sort-arrow active">&#9650;&#9660;</span></th>
+                            <th data-sort="status">Status <span class="sort-arrow">&#9650;&#9660;</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <tr><td colspan="7" class="loading"><div class="spinner"></div><p>Loading...</p></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="data-note" id="dataNote"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    const API_BASE = 'https://www.fema.gov/api/open';
+    const APPROVED_URL = `${API_BASE}/v1/FemaWebDisasterDeclarations?$filter=declarationDate gt '2024-12-31' and declarationType eq 'Major Disaster'&$top=1000`;
+    const DENIED_URL = `${API_BASE}/v1/DeclarationDenials?$filter=declarationRequestDate gt '2024-12-31' and declarationRequestType eq 'Major Disaster'&$top=1000`;
+
+    // Historical data URLs (2000-2023) — only fetch date fields for efficiency
+    const HIST_APPROVED_BASE = `${API_BASE}/v1/FemaWebDisasterDeclarations?$filter=declarationDate gt '1999-12-31' and declarationDate lt '2024-01-01' and declarationType eq 'Major Disaster'&$select=declarationRequestDate,declarationDate&$top=1000`;
+    const HIST_DENIED_URL = `${API_BASE}/v1/DeclarationDenials?$filter=declarationRequestDate gt '1999-12-31' and declarationRequestDate lt '2024-01-01' and declarationRequestType eq 'Major Disaster'&$select=declarationRequestDate,requestStatusDate&$top=1000`;
+
+    let allData = [];
+    let filteredData = [];
+    let sortColumn = 'days';
+    let sortAsc = false;
+    let chart = null;
+
+    function daysBetween(dateA, dateB) {
+        if (!dateA || !dateB) return null;
+        const a = new Date(dateA);
+        const b = new Date(dateB);
+        return Math.round((b - a) / (1000 * 60 * 60 * 24));
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function daysSinceRequest(dateStr) {
+        if (!dateStr) return null;
+        const req = new Date(dateStr);
+        const now = new Date();
+        return Math.round((now - req) / (1000 * 60 * 60 * 24));
+    }
+
+    async function fetchJSON(url) {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}: ${resp.statusText}`);
+        const data = await resp.json();
+        return data.DeclarationDenials || data.FemaWebDisasterDeclarations || [];
+    }
+
+    async function fetchAllPages(baseUrl) {
+        let all = [];
+        let skip = 0;
+        const pageSize = 1000;
+        while (true) {
+            const sep = baseUrl.includes('?') ? '&' : '?';
+            const url = `${baseUrl}${sep}$skip=${skip}`;
+            const page = await fetchJSON(url);
+            all = all.concat(page);
+            if (page.length < pageSize) break;
+            skip += pageSize;
+        }
+        return all;
+    }
+
+    function normalizeApproved(items) {
+        return items.map(d => ({
+            id: d.disasterNumber || d.id,
+            state: (d.stateName || d.stateCode || '').trim(),
+            title: d.disasterName || d.incidentType || '',
+            type: d.declarationType || '',
+            incidentType: d.incidentType || '',
+            requestDate: d.declarationRequestDate || null,
+            decisionDate: d.declarationDate || null,
+            days: daysBetween(d.declarationRequestDate, d.declarationDate),
+            status: 'approved'
+        }));
+    }
+
+    function normalizeDenied(items) {
+        return items.map(d => ({
+            id: d.declarationRequestNumber || d.id,
+            state: (d.state || d.stateAbbreviation || '').trim(),
+            title: (d.incidentName || '').trim(),
+            type: d.declarationRequestType || '',
+            incidentType: d.requestedIncidentTypes || '',
+            requestDate: d.declarationRequestDate || null,
+            decisionDate: d.requestStatusDate || null,
+            days: daysBetween(d.declarationRequestDate, d.requestStatusDate),
+            status: 'denied'
+        }));
+    }
+
+    function deduplicateApproved(items) {
+        const seen = new Map();
+        for (const item of items) {
+            const key = `${item.state}-${item.title}-${item.requestDate}`;
+            if (!seen.has(key)) seen.set(key, item);
+        }
+        return Array.from(seen.values());
+    }
+
+    let historicalAvg = null;
+    let historicalDenialRate = null;
+
+    function computeStats() {
+        const resolved = allData.filter(d => d.days !== null);
+        const approved = allData.filter(d => d.status === 'approved');
+        const denied = allData.filter(d => d.status === 'denied');
+        const avgDaysNum = resolved.length > 0
+            ? resolved.reduce((s, d) => s + d.days, 0) / resolved.length
+            : null;
+        const avgDaysStr = avgDaysNum !== null ? avgDaysNum.toFixed(1) : '—';
+
+        document.getElementById('headerStats').innerHTML =
+            `<span>Total: <strong>${allData.length}</strong></span>` +
+            `<span>Approved: <strong>${approved.length}</strong></span>` +
+            `<span>Denied: <strong>${denied.length}</strong></span>`;
+
+        // Show 2025+ avg with delta comparison if historical is loaded
+        let avgHtml = avgDaysStr;
+        if (avgDaysNum !== null && historicalAvg !== null) {
+            const diff = avgDaysNum - historicalAvg;
+            const sign = diff > 0 ? '+' : '';
+            const cls = diff > 0 ? 'up' : 'down';
+            avgHtml += ` <span class="delta ${cls}">${sign}${diff.toFixed(1)}</span>`;
+        }
+        document.getElementById('avgDays').innerHTML = avgHtml;
+
+        // 2025+ denial rate
+        const totalResolved = approved.length + denied.length;
+        if (totalResolved > 0) {
+            const rate = ((denied.length / totalResolved) * 100).toFixed(1);
+            let rateHtml = `${rate}<span class="value-suffix">%</span>`;
+            if (historicalDenialRate !== null) {
+                const diff = parseFloat(rate) - historicalDenialRate;
+                const sign = diff > 0 ? '+' : '';
+                const cls = diff > 0 ? 'up' : 'down';
+                rateHtml += ` <span class="delta ${cls}">${sign}${diff.toFixed(1)}%</span>`;
+            }
+            document.getElementById('denialRate').innerHTML = rateHtml;
+            document.getElementById('denialRateSub').textContent = `${denied.length} denied of ${totalResolved} resolved`;
+        } else {
+            document.getElementById('denialRate').textContent = '—';
+        }
+    }
+
+    function computeHistoricalAvg(approvedItems, deniedItems) {
+        let totalDays = 0;
+        let count = 0;
+        for (const d of approvedItems) {
+            const days = daysBetween(d.declarationRequestDate, d.declarationDate);
+            if (days !== null && days >= 0) { totalDays += days; count++; }
+        }
+        for (const d of deniedItems) {
+            const days = daysBetween(d.declarationRequestDate, d.requestStatusDate);
+            if (days !== null && days >= 0) { totalDays += days; count++; }
+        }
+        return count > 0 ? totalDays / count : null;
+    }
+
+    function populateStateFilter() {
+        const states = [...new Set(allData.map(d => d.state))].filter(Boolean).sort();
+        const sel = document.getElementById('stateFilter');
+        states.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = s;
+            sel.appendChild(opt);
+        });
+    }
+
+    function applyFilters() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const statusVal = document.getElementById('statusFilter').value;
+        const stateVal = document.getElementById('stateFilter').value;
+
+        filteredData = allData.filter(d => {
+            if (statusVal !== 'all' && d.status !== statusVal) return false;
+            if (stateVal !== 'all' && d.state !== stateVal) return false;
+            if (search) {
+                const haystack = `${d.state} ${d.title} ${d.incidentType} ${d.type}`.toLowerCase();
+                if (!haystack.includes(search)) return false;
+            }
+            return true;
+        });
+
+        sortData();
+        renderTable();
+        renderChart();
+    }
+
+    function sortData() {
+        filteredData.sort((a, b) => {
+            let va = a[sortColumn];
+            let vb = b[sortColumn];
+            if (sortColumn === 'days') {
+                // pending items (null days) — show their wait time for sorting
+                if (va === null) va = daysSinceRequest(a.requestDate) || 0;
+                if (vb === null) vb = daysSinceRequest(b.requestDate) || 0;
+            }
+            if (sortColumn === 'requestDate' || sortColumn === 'decisionDate') {
+                va = va ? new Date(va).getTime() : 0;
+                vb = vb ? new Date(vb).getTime() : 0;
+            }
+            if (typeof va === 'string') va = va.toLowerCase();
+            if (typeof vb === 'string') vb = vb.toLowerCase();
+            if (va < vb) return sortAsc ? -1 : 1;
+            if (va > vb) return sortAsc ? 1 : -1;
+            return 0;
+        });
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('tableBody');
+
+        if (filteredData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="no-data">No matching records found.</td></tr>';
+            document.getElementById('dataNote').textContent = '';
+            return;
+        }
+
+        const maxDays = Math.max(...allData.map(d => d.days || daysSinceRequest(d.requestDate) || 0), 1);
+
+        tbody.innerHTML = filteredData.map(d => {
+            const displayDays = d.days !== null ? d.days : daysSinceRequest(d.requestDate);
+            const barWidth = displayDays !== null ? Math.max((displayDays / maxDays) * 100, 2) : 0;
+            const barColor = d.status === 'approved' ? 'var(--green)' : d.status === 'denied' ? 'var(--red)' : 'var(--yellow)';
+            const statusLabel = d.status === 'approved' ? 'Approved'
+                : d.status === 'denied' ? 'Denied'
+                : 'Pending';
+
+            return `<tr>
+                <td>${escHtml(d.state)}</td>
+                <td>${escHtml(d.title)}</td>
+                <td>${escHtml(d.type)}</td>
+                <td>${formatDate(d.requestDate)}</td>
+                <td>${formatDate(d.decisionDate)}</td>
+                <td>
+                    <span class="days-bar" style="width:${barWidth}%;background:${barColor}"></span>
+                    ${displayDays !== null ? displayDays : '—'}
+                </td>
+                <td><span class="badge ${d.status}">${statusLabel}</span></td>
+            </tr>`;
+        }).join('');
+
+        document.getElementById('dataNote').textContent =
+            `Showing ${filteredData.length} of ${allData.length} records. Data sourced live from OpenFEMA.`;
+    }
+
+    function escHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function renderChart() {
+        const chartCanvas = document.getElementById('processingChart');
+        const chartData = filteredData
+            .map(d => ({
+                label: `${d.state} — ${d.title}`,
+                days: d.days !== null ? d.days : daysSinceRequest(d.requestDate),
+                status: d.status
+            }))
+            .filter(d => d.days !== null)
+            .sort((a, b) => b.days - a.days)
+            .slice(0, 50);
+
+        if (chartData.length === 0) {
+            chartCanvas.style.display = 'none';
+            return;
+        }
+
+        chartCanvas.style.display = 'block';
+
+        const colors = chartData.map(d =>
+            d.status === 'approved' ? '#28a745'
+            : d.status === 'denied' ? '#dc3545'
+            : '#ffc107'
+        );
+
+        if (chart) chart.destroy();
+
+        const height = Math.max(300, chartData.length * 28);
+        chartCanvas.parentElement.style.height = height + 'px';
+        chartCanvas.height = height;
+
+        chart = new Chart(chartCanvas, {
+            type: 'bar',
+            data: {
+                labels: chartData.map(d => d.label.length > 50 ? d.label.slice(0, 47) + '...' : d.label),
+                datasets: [{
+                    label: 'Days',
+                    data: chartData.map(d => d.days),
+                    backgroundColor: colors,
+                    borderRadius: 3,
+                    barThickness: 18
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const d = chartData[ctx.dataIndex];
+                                return `${d.days} days — ${d.status.charAt(0).toUpperCase() + d.status.slice(1)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Days from Request to Decision' },
+                        beginAtZero: true
+                    },
+                    y: {
+                        ticks: { font: { size: 11 } }
+                    }
+                }
+            }
+        });
+    }
+
+    function setupSorting() {
+        document.querySelectorAll('.fema-dashboard thead th[data-sort]').forEach(th => {
+            th.addEventListener('click', function() {
+                const col = this.dataset.sort;
+                if (sortColumn === col) {
+                    sortAsc = !sortAsc;
+                } else {
+                    sortColumn = col;
+                    sortAsc = true;
+                }
+                document.querySelectorAll('.fema-dashboard .sort-arrow').forEach(a => a.classList.remove('active'));
+                this.querySelector('.sort-arrow').classList.add('active');
+                applyFilters();
+            });
+        });
+    }
+
+    function setupFilters() {
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+        document.getElementById('stateFilter').addEventListener('change', applyFilters);
+    }
+
+    async function init() {
+        try {
+            // Fetch 2025+ data and historical data in parallel
+            const [approvedRaw, deniedRaw] = await Promise.all([
+                fetchJSON(APPROVED_URL),
+                fetchJSON(DENIED_URL)
+            ]);
+
+            const approved = deduplicateApproved(normalizeApproved(approvedRaw));
+            const denied = normalizeDenied(deniedRaw);
+
+            // Mark any denied items that lack a decision date as pending
+            denied.forEach(d => {
+                if (!d.decisionDate) d.status = 'pending';
+            });
+            // Mark approved items without a decision date as pending
+            approved.forEach(d => {
+                if (!d.decisionDate) d.status = 'pending';
+            });
+
+            allData = [...approved, ...denied];
+            filteredData = [...allData];
+
+            computeStats();
+            populateStateFilter();
+            setupSorting();
+            setupFilters();
+            sortData();
+
+            document.getElementById('chartLoading').style.display = 'none';
+            renderChart();
+            renderTable();
+
+            // Fetch historical baseline in the background (don't block the main dashboard)
+            fetchHistoricalBaseline();
+
+        } catch (err) {
+            console.error('Failed to load FEMA data:', err);
+            document.getElementById('chartLoading').innerHTML =
+                `<p class="error">Failed to load data from OpenFEMA.<br>${escHtml(err.message)}<br>Please try refreshing the page.</p>`;
+            document.getElementById('tableBody').innerHTML =
+                `<tr><td colspan="7" class="error">Failed to load data. ${escHtml(err.message)}</td></tr>`;
+        }
+    }
+
+    async function fetchHistoricalBaseline() {
+        try {
+            document.getElementById('avgDaysHistorical').innerHTML = '<span style="font-size:14px;color:var(--gray-600);">Loading...</span>';
+
+            const [histApproved, histDenied] = await Promise.all([
+                fetchAllPages(HIST_APPROVED_BASE),
+                fetchAllPages(HIST_DENIED_URL)
+            ]);
+
+            historicalAvg = computeHistoricalAvg(histApproved, histDenied);
+
+            if (historicalAvg !== null) {
+                document.getElementById('avgDaysHistorical').textContent = historicalAvg.toFixed(1);
+                document.querySelector('#avgDaysHistorical').closest('.indicator-card').querySelector('.subtitle').textContent =
+                    `Based on ${histApproved.length + histDenied.length} requests (2000–2023)`;
+            } else {
+                document.getElementById('avgDaysHistorical').textContent = '—';
+            }
+
+            // Historical denial rate
+            const histTotal = histApproved.length + histDenied.length;
+            if (histTotal > 0) {
+                historicalDenialRate = (histDenied.length / histTotal) * 100;
+                document.getElementById('denialRateHistorical').innerHTML =
+                    `${historicalDenialRate.toFixed(1)}<span class="value-suffix">%</span>`;
+                document.getElementById('denialRateHistSub').textContent =
+                    `${histDenied.length} denied of ${histTotal} resolved`;
+            } else {
+                document.getElementById('denialRateHistorical').textContent = '—';
+            }
+
+            // Re-compute stats to show deltas on the 2025 cards
+            computeStats();
+        } catch (err) {
+            console.error('Failed to load historical data:', err);
+            document.getElementById('avgDaysHistorical').textContent = 'Error';
+            document.querySelector('#avgDaysHistorical').closest('.indicator-card').querySelector('.subtitle').textContent =
+                'Could not load historical data';
+            document.getElementById('denialRateHistorical').textContent = 'Error';
+            document.getElementById('denialRateHistSub').textContent = 'Could not load historical data';
+        }
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>
