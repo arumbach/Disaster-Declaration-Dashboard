@@ -95,6 +95,14 @@
             border-left-color: var(--red);
         }
 
+        .fema-dashboard .indicator-card.trump {
+            border-left-color: #e63946;
+        }
+
+        .fema-dashboard .indicator-card.harris {
+            border-left-color: #1d4ed8;
+        }
+
         .fema-dashboard .indicator-card .value-suffix {
             font-size: 20px;
             font-weight: 600;
@@ -302,6 +310,51 @@
             color: #e65100;
         }
 
+        .fema-dashboard .chart-container--political {
+            min-height: 600px;
+            position: relative;
+        }
+
+        .fema-dashboard .quadrant-labels {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .fema-dashboard .quadrant-label {
+            position: absolute;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            opacity: 0.5;
+        }
+
+        .fema-dashboard .quadrant-label--tr {
+            top: 12px;
+            right: 16px;
+            color: var(--green);
+        }
+
+        .fema-dashboard .quadrant-label--tl {
+            top: 12px;
+            left: 16px;
+            color: var(--red);
+        }
+
+        .fema-dashboard .quadrant-label--br {
+            bottom: 12px;
+            right: 16px;
+            color: var(--green);
+        }
+
+        .fema-dashboard .quadrant-label--bl {
+            bottom: 12px;
+            left: 16px;
+            color: var(--red);
+        }
+
         @media (max-width: 768px) {
             .fema-dashboard .header { padding: 16px; }
             .fema-dashboard .header h1 { font-size: 18px; }
@@ -354,6 +407,11 @@
             As a result, the totals shown here may undercount the actual number of active declaration requests.
         </div>
 
+        <div class="disclaimer">
+            <strong>Tribal Nations Note:</strong> Due to the way FEMA organizes data in the OpenFEMA dataset, approved disaster declarations for Tribal Nations appear as state declarations rather than being attributed to the specific Tribal Nation.
+            We have manually corrected this issue for the period of January 1, 2025 through February 13, 2026 and will periodically update the tracker to correctly categorize Tribes with Federal Disaster Declarations.
+        </div>
+
         <div class="section">
             <div class="section-header">Processing Time by Request (Days from Request to Decision)</div>
             <div class="chart-container">
@@ -362,6 +420,57 @@
                     <p>Loading data from OpenFEMA...</p>
                 </div>
                 <canvas id="processingChart" style="display:none;"></canvas>
+            </div>
+        </div>
+
+        <div class="indicators">
+            <div class="indicator-card trump">
+                <div class="label">Approval Rate — Trump States</div>
+                <div class="value" id="approvalRateTrump">--</div>
+                <div class="subtitle" id="approvalRateTrumpSub">Loading...</div>
+            </div>
+            <div class="indicator-card harris">
+                <div class="label">Approval Rate — Harris States</div>
+                <div class="value" id="approvalRateHarris">--</div>
+                <div class="subtitle" id="approvalRateHarrisSub">Loading...</div>
+            </div>
+            <div class="indicator-card trump">
+                <div class="label">Avg. Days to Decision — Trump States</div>
+                <div class="value" id="avgDaysTrump">--</div>
+                <div class="subtitle" id="avgDaysTrumpSub">Loading...</div>
+            </div>
+            <div class="indicator-card harris">
+                <div class="label">Avg. Days to Decision — Harris States</div>
+                <div class="value" id="avgDaysHarris">--</div>
+                <div class="subtitle" id="avgDaysHarrisSub">Loading...</div>
+            </div>
+            <div class="indicator-card trump">
+                <div class="label">Median Days to Decision — Trump States</div>
+                <div class="value" id="medianDaysTrump">--</div>
+                <div class="subtitle" id="medianDaysTrumpSub">Loading...</div>
+            </div>
+            <div class="indicator-card harris">
+                <div class="label">Median Days to Decision — Harris States</div>
+                <div class="value" id="medianDaysHarris">--</div>
+                <div class="subtitle" id="medianDaysHarrisSub">Loading...</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">Political Context: Processing Time vs. 2024 Vote Margin</div>
+            <div class="chart-container chart-container--political">
+                <div class="quadrant-labels">
+                    <div class="quadrant-label quadrant-label--tr">Approved + Trump</div>
+                    <div class="quadrant-label quadrant-label--tl">Denied + Trump</div>
+                    <div class="quadrant-label quadrant-label--br">Approved + Harris</div>
+                    <div class="quadrant-label quadrant-label--bl">Denied + Harris</div>
+                </div>
+                <canvas id="politicalScatterChart"></canvas>
+            </div>
+            <div class="data-note">
+                X-axis: Days to decision — denied requests extend left, approved requests extend right.
+                Y-axis: 2024 presidential vote margin — Trump-won states above center, Harris-won states below.
+                Tribal Nation declaration requests and approvals/denials have been removed from the indicator cards above and this chart, as Tribal Nations are sovereign entities and are not represented by state-level presidential vote margins.
             </div>
         </div>
 
@@ -382,6 +491,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th data-sort="id">Disaster # <span class="sort-arrow">&#9650;&#9660;</span></th>
                             <th data-sort="state">State <span class="sort-arrow">&#9650;&#9660;</span></th>
                             <th data-sort="title">Incident / Title <span class="sort-arrow">&#9650;&#9660;</span></th>
                             <th data-sort="type">Type <span class="sort-arrow">&#9650;&#9660;</span></th>
@@ -392,7 +502,7 @@
                         </tr>
                     </thead>
                     <tbody id="tableBody">
-                        <tr><td colspan="7" class="loading"><div class="spinner"></div><p>Loading...</p></td></tr>
+                        <tr><td colspan="8" class="loading"><div class="spinner"></div><p>Loading...</p></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -418,6 +528,41 @@
     let sortColumn = 'days';
     let sortAsc = false;
     let chart = null;
+    let scatterChart = null;
+
+    // 2024 Presidential Election: state vote margin (positive = Trump win, negative = Harris win)
+    const VOTE_MARGIN_2024 = {
+        'Alabama': 25.4, 'Alaska': 12.9, 'Arizona': 2.1, 'Arkansas': 29.3,
+        'California': -20.6, 'Colorado': -10.5, 'Connecticut': -13.4, 'Delaware': -13.1,
+        'District of Columbia': -83.1, 'Florida': 13.3, 'Georgia': 2.2,
+        'Hawaii': -20.6, 'Idaho': 35.8, 'Illinois': -7.6, 'Indiana': 19.4,
+        'Iowa': 13.5, 'Kansas': 16.7, 'Kentucky': 31.1, 'Louisiana': 21.6,
+        'Maine': -6.2, 'Maryland': -24.0, 'Massachusetts': -20.5, 'Michigan': 1.4,
+        'Minnesota': -2.1, 'Mississippi': 18.2, 'Missouri': 19.1, 'Montana': 18.5,
+        'Nebraska': 21.2, 'Nevada': 3.2, 'New Hampshire': -1.4, 'New Jersey': -5.8,
+        'New Mexico': -3.1, 'New York': -12.2, 'North Carolina': 3.3, 'North Dakota': 35.5,
+        'Ohio': 11.1, 'Oklahoma': 33.5, 'Oregon': -10.1, 'Pennsylvania': 1.8,
+        'Rhode Island': -13.5, 'South Carolina': 17.1, 'South Dakota': 29.0,
+        'Tennessee': 28.0, 'Texas': 13.8, 'Utah': 19.5, 'Vermont': -24.0,
+        'Virginia': -2.7, 'Washington': -13.8, 'West Virginia': 41.8, 'Wisconsin': 0.9,
+        'Wyoming': 42.7
+    };
+
+    // Tribal disaster declarations (approved) — not available via API field,
+    // identified from FEMA disaster pages: disasterNumber → tribe name
+    const TRIBAL_DISASTERS = {
+        4853: 'Native Village of Kipnuk',
+        4857: 'Native Village of Kwigillingok',
+        4887: 'Crow Tribe of Montana',
+        4890: 'Sisseton-Wahpeton Oyate',
+        4894: 'Leech Lake Band of Ojibwe'
+    };
+
+    function getVoteMargin(stateName) {
+        const trimmed = stateName.trim();
+        if (VOTE_MARGIN_2024[trimmed] !== undefined) return VOTE_MARGIN_2024[trimmed];
+        return null;
+    }
 
     function daysBetween(dateA, dateB) {
         if (!dateA || !dateB) return null;
@@ -462,31 +607,46 @@
     }
 
     function normalizeApproved(items) {
-        return items.map(d => ({
-            id: d.disasterNumber || d.id,
-            state: (d.stateName || d.stateCode || '').trim(),
-            title: d.disasterName || d.incidentType || '',
-            type: d.declarationType || '',
-            incidentType: d.incidentType || '',
-            requestDate: d.declarationRequestDate || null,
-            decisionDate: d.declarationDate || null,
-            days: daysBetween(d.declarationRequestDate, d.declarationDate),
-            status: 'approved'
-        }));
+        return items.map(d => {
+            const num = d.disasterNumber || d.id;
+            const rawState = (d.stateName || d.stateCode || '').trim();
+            const tribal = TRIBAL_DISASTERS[num] || false;
+            return {
+                id: num,
+                state: rawState,
+                displayState: tribal ? `Tribal (${rawState})` : rawState,
+                tribal: !!tribal,
+                tribeName: tribal || null,
+                title: d.disasterName || d.incidentType || '',
+                type: d.declarationType || '',
+                incidentType: d.incidentType || '',
+                requestDate: d.declarationRequestDate || null,
+                decisionDate: d.declarationDate || null,
+                days: daysBetween(d.declarationRequestDate, d.declarationDate),
+                status: 'approved'
+            };
+        });
     }
 
     function normalizeDenied(items) {
-        return items.map(d => ({
-            id: d.declarationRequestNumber || d.id,
-            state: (d.state || d.stateAbbreviation || '').trim(),
-            title: (d.incidentName || '').trim(),
-            type: d.declarationRequestType || '',
-            incidentType: d.requestedIncidentTypes || '',
-            requestDate: d.declarationRequestDate || null,
-            decisionDate: d.requestStatusDate || null,
-            days: daysBetween(d.declarationRequestDate, d.requestStatusDate),
-            status: 'denied'
-        }));
+        return items.map(d => {
+            const rawState = (d.state || d.stateAbbreviation || '').trim();
+            const tribal = !!d.tribalRequest;
+            return {
+                id: d.declarationRequestNumber || d.id,
+                state: rawState,
+                displayState: tribal ? `Tribal (${rawState})` : rawState,
+                tribal: tribal,
+                tribeName: tribal ? (d.incidentName || '').trim() : null,
+                title: (d.incidentName || '').trim(),
+                type: d.declarationRequestType || '',
+                incidentType: d.requestedIncidentTypes || '',
+                requestDate: d.declarationRequestDate || null,
+                decisionDate: d.requestStatusDate || null,
+                days: daysBetween(d.declarationRequestDate, d.requestStatusDate),
+                status: 'denied'
+            };
+        });
     }
 
     function deduplicateApproved(items) {
@@ -541,6 +701,89 @@
         } else {
             document.getElementById('denialRate').textContent = '—';
         }
+
+        computePoliticalStats();
+    }
+
+    function computePoliticalStats() {
+        const resolved = allData.filter(d => d.days !== null && !d.tribal && getVoteMargin(d.state) !== null);
+
+        const trump = resolved.filter(d => getVoteMargin(d.state) > 0);
+        const harris = resolved.filter(d => getVoteMargin(d.state) < 0);
+
+        const trumpApproved = trump.filter(d => d.status === 'approved');
+        const harrisApproved = harris.filter(d => d.status === 'approved');
+
+        // Approval rates
+        if (trump.length > 0) {
+            const rate = ((trumpApproved.length / trump.length) * 100).toFixed(1);
+            document.getElementById('approvalRateTrump').innerHTML = `${rate}<span class="value-suffix">%</span>`;
+            document.getElementById('approvalRateTrumpSub').textContent =
+                `${trumpApproved.length} approved of ${trump.length} resolved`;
+        } else {
+            document.getElementById('approvalRateTrump').textContent = '—';
+            document.getElementById('approvalRateTrumpSub').textContent = 'No data';
+        }
+
+        if (harris.length > 0) {
+            const rate = ((harrisApproved.length / harris.length) * 100).toFixed(1);
+            document.getElementById('approvalRateHarris').innerHTML = `${rate}<span class="value-suffix">%</span>`;
+            document.getElementById('approvalRateHarrisSub').textContent =
+                `${harrisApproved.length} approved of ${harris.length} resolved`;
+        } else {
+            document.getElementById('approvalRateHarris').textContent = '—';
+            document.getElementById('approvalRateHarrisSub').textContent = 'No data';
+        }
+
+        // Average days to decision
+        if (trump.length > 0) {
+            const avg = trump.reduce((s, d) => s + d.days, 0) / trump.length;
+            document.getElementById('avgDaysTrump').textContent = avg.toFixed(1);
+            document.getElementById('avgDaysTrumpSub').textContent =
+                `Across ${trump.length} resolved requests`;
+        } else {
+            document.getElementById('avgDaysTrump').textContent = '—';
+            document.getElementById('avgDaysTrumpSub').textContent = 'No data';
+        }
+
+        if (harris.length > 0) {
+            const avg = harris.reduce((s, d) => s + d.days, 0) / harris.length;
+            document.getElementById('avgDaysHarris').textContent = avg.toFixed(1);
+            document.getElementById('avgDaysHarrisSub').textContent =
+                `Across ${harris.length} resolved requests`;
+        } else {
+            document.getElementById('avgDaysHarris').textContent = '—';
+            document.getElementById('avgDaysHarrisSub').textContent = 'No data';
+        }
+
+        // Median days to decision
+        function median(arr) {
+            const sorted = arr.slice().sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            return sorted.length % 2 !== 0
+                ? sorted[mid]
+                : (sorted[mid - 1] + sorted[mid]) / 2;
+        }
+
+        if (trump.length > 0) {
+            const med = median(trump.map(d => d.days));
+            document.getElementById('medianDaysTrump').textContent = med.toFixed(1);
+            document.getElementById('medianDaysTrumpSub').textContent =
+                `Middle value of ${trump.length} resolved requests`;
+        } else {
+            document.getElementById('medianDaysTrump').textContent = '—';
+            document.getElementById('medianDaysTrumpSub').textContent = 'No data';
+        }
+
+        if (harris.length > 0) {
+            const med = median(harris.map(d => d.days));
+            document.getElementById('medianDaysHarris').textContent = med.toFixed(1);
+            document.getElementById('medianDaysHarrisSub').textContent =
+                `Middle value of ${harris.length} resolved requests`;
+        } else {
+            document.getElementById('medianDaysHarris').textContent = '—';
+            document.getElementById('medianDaysHarrisSub').textContent = 'No data';
+        }
     }
 
     function computeHistoricalAvg(approvedItems, deniedItems) {
@@ -577,7 +820,7 @@
             if (statusVal !== 'all' && d.status !== statusVal) return false;
             if (stateVal !== 'all' && d.state !== stateVal) return false;
             if (search) {
-                const haystack = `${d.state} ${d.title} ${d.incidentType} ${d.type}`.toLowerCase();
+                const haystack = `${d.displayState} ${d.state} ${d.title} ${d.incidentType} ${d.type}`.toLowerCase();
                 if (!haystack.includes(search)) return false;
             }
             return true;
@@ -586,6 +829,7 @@
         sortData();
         renderTable();
         renderChart();
+        renderPoliticalScatter();
     }
 
     function sortData() {
@@ -613,7 +857,7 @@
         const tbody = document.getElementById('tableBody');
 
         if (filteredData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="no-data">No matching records found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="no-data">No matching records found.</td></tr>';
             document.getElementById('dataNote').textContent = '';
             return;
         }
@@ -629,7 +873,8 @@
                 : 'Pending';
 
             return `<tr>
-                <td>${escHtml(d.state)}</td>
+                <td>${d.status === 'approved' ? `<a href="https://www.fema.gov/disaster/${d.id}" target="_blank" rel="noopener">${escHtml(String(d.id))}</a>` : '—'}</td>
+                <td>${escHtml(d.displayState)}</td>
                 <td>${escHtml(d.title)}</td>
                 <td>${escHtml(d.type)}</td>
                 <td>${formatDate(d.requestDate)}</td>
@@ -656,7 +901,7 @@
         const chartCanvas = document.getElementById('processingChart');
         const chartData = filteredData
             .map(d => ({
-                label: `${d.state} — ${d.title}`,
+                label: `${d.displayState} — ${d.title}`,
                 days: d.days !== null ? d.days : daysSinceRequest(d.requestDate),
                 status: d.status
             }))
@@ -723,6 +968,158 @@
         });
     }
 
+    function renderPoliticalScatter() {
+        const canvas = document.getElementById('politicalScatterChart');
+        if (!canvas) return;
+
+        const resolved = filteredData.filter(d => d.days !== null && !d.tribal);
+
+        const approvedPoints = [];
+        const deniedPoints = [];
+
+        resolved.forEach(d => {
+            const margin = getVoteMargin(d.state);
+            if (margin === null) return;
+
+            const xValue = d.status === 'denied' ? -Math.abs(d.days) : d.days;
+            const point = {
+                x: xValue,
+                y: margin,
+                state: d.state,
+                title: d.title,
+                days: d.days,
+                status: d.status,
+                margin: margin
+            };
+
+            if (d.status === 'approved') {
+                approvedPoints.push(point);
+            } else {
+                deniedPoints.push(point);
+            }
+        });
+
+        if (scatterChart) scatterChart.destroy();
+
+        if (approvedPoints.length === 0 && deniedPoints.length === 0) {
+            canvas.style.display = 'none';
+            return;
+        }
+        canvas.style.display = 'block';
+
+        // Compute symmetric axis bounds so the 0,0 intercept is centered
+        const allPoints = [...approvedPoints, ...deniedPoints];
+        const maxAbsX = Math.max(...allPoints.map(p => Math.abs(p.x)), 1);
+        const maxAbsY = Math.max(...allPoints.map(p => Math.abs(p.y)), 1);
+        const xLimit = Math.ceil(maxAbsX * 1.1);  // 10% padding
+        const yLimit = Math.ceil(maxAbsY * 1.1);
+
+        scatterChart = new Chart(canvas, {
+            type: 'scatter',
+            data: {
+                datasets: [
+                    {
+                        label: 'Approved',
+                        data: approvedPoints,
+                        backgroundColor: 'rgba(40, 167, 69, 0.55)',
+                        borderColor: '#28a745',
+                        borderWidth: 1.5,
+                        pointRadius: 7,
+                        pointHoverRadius: 10
+                    },
+                    {
+                        label: 'Denied',
+                        data: deniedPoints,
+                        backgroundColor: 'rgba(220, 53, 69, 0.55)',
+                        borderColor: '#dc3545',
+                        borderWidth: 1.5,
+                        pointRadius: 7,
+                        pointHoverRadius: 10
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: { usePointStyle: true, padding: 20 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                const p = context[0].raw;
+                                return p.state;
+                            },
+                            beforeBody: function(context) {
+                                const p = context[0].raw;
+                                const name = p.title.length > 55 ? p.title.slice(0, 52) + '...' : p.title;
+                                return name;
+                            },
+                            label: function(context) {
+                                const p = context.raw;
+                                return [
+                                    `Status: ${p.status.charAt(0).toUpperCase() + p.status.slice(1)}`,
+                                    `Days to decision: ${p.days}`,
+                                    `2024 margin: ${p.margin > 0 ? '+' : ''}${p.margin.toFixed(1)}% (${p.margin > 0 ? 'Trump' : 'Harris'})`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'center',
+                        min: -xLimit,
+                        max: xLimit,
+                        title: {
+                            display: true,
+                            text: '\u2190 Denied (days)  |  Approved (days) \u2192',
+                            font: { size: 13, weight: '600' },
+                            padding: { top: 12 }
+                        },
+                        grid: {
+                            color: function(context) {
+                                return context.tick.value === 0 ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.06)';
+                            },
+                            lineWidth: function(context) {
+                                return context.tick.value === 0 ? 2 : 1;
+                            }
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        position: 'center',
+                        min: -yLimit,
+                        max: yLimit,
+                        title: {
+                            display: true,
+                            text: '\u2191 Trump  |  Harris \u2193',
+                            font: { size: 13, weight: '600' },
+                            padding: { bottom: 12 }
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return (value > 0 ? '+' : '') + value + '%';
+                            }
+                        },
+                        grid: {
+                            color: function(context) {
+                                return context.tick.value === 0 ? 'rgba(0,0,0,0.25)' : 'rgba(0,0,0,0.06)';
+                            },
+                            lineWidth: function(context) {
+                                return context.tick.value === 0 ? 2 : 1;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     function setupSorting() {
         document.querySelectorAll('.fema-dashboard thead th[data-sort]').forEach(th => {
             th.addEventListener('click', function() {
@@ -778,6 +1175,7 @@
             document.getElementById('chartLoading').style.display = 'none';
             renderChart();
             renderTable();
+            renderPoliticalScatter();
 
             // Fetch historical baseline in the background (don't block the main dashboard)
             fetchHistoricalBaseline();
@@ -787,7 +1185,7 @@
             document.getElementById('chartLoading').innerHTML =
                 `<p class="error">Failed to load data from OpenFEMA.<br>${escHtml(err.message)}<br>Please try refreshing the page.</p>`;
             document.getElementById('tableBody').innerHTML =
-                `<tr><td colspan="7" class="error">Failed to load data. ${escHtml(err.message)}</td></tr>`;
+                `<tr><td colspan="8" class="error">Failed to load data. ${escHtml(err.message)}</td></tr>`;
         }
     }
 
