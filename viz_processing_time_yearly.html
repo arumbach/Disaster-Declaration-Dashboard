@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Median Days to Decision by Year — Disaster Lab</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff; color: #1a1a2e;
+            padding: 40px 24px; max-width: 960px; margin: 0 auto;
+        }
+        h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #6c757d; margin-bottom: 24px; line-height: 1.5; }
+        .chart-wrap { position: relative; height: 420px; margin-bottom: 16px; }
+        .footnote { font-size: 11px; color: #6c757d; line-height: 1.6; margin-top: 12px; }
+        .btn-download {
+            display: inline-block; margin-top: 16px; padding: 8px 16px;
+            background: #003366; color: white; border: none; border-radius: 4px;
+            font-size: 13px; cursor: pointer;
+        }
+        .btn-download:hover { background: #004488; }
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="index.html" class="site-name">Disaster Lab</a>
+            <nav class="site-nav">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="contact.html">Contact</a>
+            </nav>
+        </div>
+    </header>
+    <div style="max-width:960px;margin:0 auto;padding:12px 24px 0;">
+        <a href="fema.html" class="back-link">Presidential Disaster Declarations</a>
+    </div>
+    <h1>Median Days from Declaration Request to Decision by Year</h1>
+    <p class="subtitle">How quickly each year's Major Disaster declaration requests were processed — median days for approvals and denials (2001–2026)</p>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    <div class="footnote">
+        Median is the midpoint value — half of declarations were processed faster, half slower. It is less
+        affected by outliers than the average. Transition years (2009, 2013, 2017, 2021, 2025) combine data
+        from both outgoing and incoming administrations, weighted by declaration count.
+        COVID-19 (Biological) declarations excluded. 2026 is a partial year. Data: OpenFEMA API.
+    </div>
+    <button class="btn-download" onclick="downloadPNG()">Download as PNG</button>
+
+<script>
+Chart.defaults.font.family = "'Aptos', 'Segoe UI', Roboto, sans-serif";
+
+// Per-year data: median and average days to decision (weighted across admins for transition years)
+const rawRows = [
+    {y:2001, medApp:7,    medDen:29,   avgApp:7.4,  avgDen:36.5},
+    {y:2002, medApp:3,    medDen:19,   avgApp:6.3,  avgDen:37.8},
+    {y:2003, medApp:7.5,  medDen:46,   avgApp:9.2,  avgDen:55},
+    {y:2004, medApp:6,    medDen:37,   avgApp:8.4,  avgDen:53.2},
+    {y:2005, medApp:16,   medDen:74,   avgApp:16.8, avgDen:75.2},
+    {y:2006, medApp:14,   medDen:73,   avgApp:16.2, avgDen:80.4},
+    {y:2007, medApp:9,    medDen:26,   avgApp:12.5, avgDen:51.3},
+    {y:2008, medApp:10,   medDen:62,   avgApp:11.1, avgDen:58.5},
+    {y:2009, medApp:14.3, medDen:85,   avgApp:22.1, avgDen:131.8},
+    {y:2010, medApp:14,   medDen:46,   avgApp:16.3, avgDen:46.2},
+    {y:2011, medApp:9,    medDen:53,   avgApp:12.5, avgDen:51.3},
+    {y:2012, medApp:7,    medDen:9.5,  avgApp:9.3,  avgDen:18.3},
+    {y:2013, medApp:11.4, medDen:65.2, avgApp:13.8, avgDen:66},
+    {y:2014, medApp:10,   medDen:38.5, avgApp:11.5, avgDen:37.5},
+    {y:2015, medApp:9,    medDen:23,   avgApp:9.8,  avgDen:27.1},
+    {y:2016, medApp:9.5,  medDen:29,   avgApp:11.5, avgDen:38.5},
+    {y:2017, medApp:15,   medDen:33.6, avgApp:20.7, avgDen:40.1},
+    {y:2018, medApp:21,   medDen:46.5, avgApp:25.3, avgDen:71.4},
+    {y:2019, medApp:15,   medDen:88,   avgApp:20.7, avgDen:99.6},
+    {y:2020, medApp:27,   medDen:62,   avgApp:25.1, avgDen:69.2},
+    {y:2021, medApp:19.3, medDen:36,   avgApp:23.3, avgDen:59.4},
+    {y:2022, medApp:19.5, medDen:64,   avgApp:19.7, avgDen:63.2},
+    {y:2023, medApp:18,   medDen:58.5, avgApp:21.3, avgDen:83.3},
+    {y:2024, medApp:20.5, medDen:43,   avgApp:26.5, avgDen:99.7},
+    {y:2025, medApp:36.2, medDen:110.1,avgApp:37.5, avgDen:114.4},
+    {y:2026, medApp:6,    medDen:107,  avgApp:6,    avgDen:116.8}
+];
+
+const years = rawRows.map(r => r.y);
+const medianApproval = rawRows.map(r => r.medApp);
+const medianDenial = rawRows.map(r => r.medDen);
+const avgApproval = rawRows.map(r => r.avgApp);
+const avgDenial = rawRows.map(r => r.avgDen);
+
+// Administration transition lines (inauguration years)
+const transitions = [
+    { x: '2005', label: 'Bush 2' },
+    { x: '2009', label: 'Obama 1' },
+    { x: '2013', label: 'Obama 2' },
+    { x: '2017', label: 'Trump 1' },
+    { x: '2021', label: 'Biden' },
+    { x: '2025', label: 'Trump 2' }
+];
+
+// Background bands for administrations
+const adminBands = [
+    { x1: 2000.5, x2: 2004.5, color: 'rgba(185,28,28,0.06)' },
+    { x1: 2004.5, x2: 2008.5, color: 'rgba(248,113,113,0.06)' },
+    { x1: 2008.5, x2: 2012.5, color: 'rgba(29,78,216,0.06)' },
+    { x1: 2012.5, x2: 2016.5, color: 'rgba(59,130,246,0.06)' },
+    { x1: 2016.5, x2: 2020.5, color: 'rgba(220,38,38,0.06)' },
+    { x1: 2020.5, x2: 2024.5, color: 'rgba(37,99,235,0.06)' },
+    { x1: 2024.5, x2: 2026.5, color: 'rgba(239,68,68,0.06)' }
+];
+
+const annotations = {};
+adminBands.forEach((band, i) => {
+    annotations['band'+i] = {
+        type: 'box',
+        xMin: years.indexOf(Math.ceil(band.x1)),
+        xMax: years.indexOf(Math.floor(band.x2)),
+        backgroundColor: band.color,
+        borderWidth: 0
+    };
+});
+transitions.forEach((t, i) => {
+    const idx = years.indexOf(parseInt(t.x));
+    if (idx >= 0) {
+        annotations['line'+i] = {
+            type: 'line',
+            xMin: idx - 0.5,
+            xMax: idx - 0.5,
+            borderColor: '#999',
+            borderWidth: 1,
+            borderDash: [4, 4],
+            label: {
+                display: true,
+                content: t.label,
+                position: 'start',
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                color: '#fff',
+                font: { size: 10 },
+                padding: 4
+            }
+        };
+    }
+});
+
+const ctx = document.getElementById('chart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: years,
+        datasets: [
+            {
+                label: 'Median Days to Approval',
+                data: medianApproval,
+                backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                borderColor: '#28a745',
+                borderWidth: 1,
+                borderRadius: 3
+            },
+            {
+                label: 'Median Days to Denial',
+                data: medianDenial,
+                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                borderColor: '#dc3545',
+                borderWidth: 1,
+                borderRadius: 3
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { size: 12 }, usePointStyle: true, pointStyle: 'rectRounded', padding: 20 }
+            },
+            annotation: { annotations: annotations },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        const i = ctx.dataIndex;
+                        const ds = ctx.datasetIndex;
+                        if (ds === 0) {
+                            return [
+                                `Median: ${medianApproval[i]} days`,
+                                `Average: ${avgApproval[i]} days`
+                            ];
+                        } else {
+                            return [
+                                `Median: ${medianDenial[i]} days`,
+                                `Average: ${avgDenial[i]} days`
+                            ];
+                        }
+                    },
+                    title: function(items) {
+                        return items[0].label;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { font: { size: 11 } }
+            },
+            y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Median Days to Decision', font: { size: 13, weight: '600' } },
+                grid: { color: '#f0f0f0' }
+            }
+        }
+    }
+});
+
+function downloadPNG() {
+    const link = document.createElement('a');
+    link.download = 'fema_processing_time_yearly.png';
+    link.href = chart.toBase64Image('image/png', 1);
+    link.click();
+}
+</script>
+</body>
+</html>
