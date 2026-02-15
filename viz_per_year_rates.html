@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FEMA Declarations Per Year — Normalized Rates</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff; color: #1a1a2e;
+            padding: 40px 24px; max-width: 850px; margin: 0 auto;
+        }
+        h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #6c757d; margin-bottom: 24px; }
+        .chart-wrap { position: relative; height: 440px; margin-bottom: 16px; }
+        .footnote { font-size: 11px; color: #6c757d; line-height: 1.6; margin-top: 12px; }
+        .btn-download {
+            display: inline-block; margin-top: 16px; padding: 8px 16px;
+            background: #003366; color: white; border: none; border-radius: 4px;
+            font-size: 13px; cursor: pointer;
+        }
+        .btn-download:hover { background: #004488; }
+    </style>
+</head>
+<body>
+    <h1>Declaration Requests Per Year of Presidency</h1>
+    <p class="subtitle">Annualized rates normalize for different term lengths — especially important for Trump 2's partial term</p>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    <div class="footnote">
+        Per-year rate = total declarations ÷ years in office. Obama terms are 4 years each; Trump 1 and Biden 4 years;
+        Trump 2 uses fractional elapsed years since Jan 20, 2025. Major Disaster declarations only (COVID-19 excluded). Data: OpenFEMA API.
+    </div>
+    <button class="btn-download" onclick="downloadPNG()">Download as PNG</button>
+
+<script>
+const labels = ['Bush 1\n(2001–05)', 'Bush 2\n(2005–09)', 'Obama 1\n(2009–13)', 'Obama 2\n(2013–17)', 'Trump 1\n(2017–21)', 'Biden\n(2021–25)', 'Trump 2\n(2025–)'];
+Chart.defaults.font.family = "'Aptos', 'Segoe UI', Roboto, sans-serif";
+
+const approvalsPerYear = [53.5, 60.8, 70.8, 48.5, 57.5, 68, 37.4];
+const denialsPerYear = [11.5, 11.5, 10.8, 11.2, 8.8, 12, 15.9];
+const totalPerYear = [65, 72.2, 81.5, 59.8, 66.2, 80, 53.3];
+
+const adminColors = ['#b91c1c', '#f87171', '#1d4ed8', '#3b82f6', '#dc2626', '#2563eb', '#ef4444'];
+const adminColorsFaded = ['rgba(185,28,28,0.7)', 'rgba(248,113,113,0.7)', 'rgba(29,78,216,0.7)', 'rgba(59,130,246,0.7)', 'rgba(220,38,38,0.7)', 'rgba(37,99,235,0.7)', 'rgba(239,68,68,0.7)'];
+
+const ctx = document.getElementById('chart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Approvals Per Year',
+                data: approvalsPerYear,
+                backgroundColor: 'rgba(40,167,69,0.8)',
+                borderColor: '#28a745',
+                borderWidth: 1.5,
+                borderRadius: 4,
+                barPercentage: 0.8,
+                categoryPercentage: 0.7
+            },
+            {
+                label: 'Denials Per Year',
+                data: denialsPerYear,
+                backgroundColor: 'rgba(220,53,69,0.8)',
+                borderColor: '#dc3545',
+                borderWidth: 1.5,
+                borderRadius: 4,
+                barPercentage: 0.8,
+                categoryPercentage: 0.7
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { size: 12 }, usePointStyle: true, pointStyle: 'rectRounded', padding: 20 }
+            },
+            tooltip: {
+                callbacks: {
+                    afterBody: function(items) {
+                        const i = items[0].dataIndex;
+                        return `Total requests/year: ${totalPerYear[i]}`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: { font: { size: 12 } }
+            },
+            y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Declarations Per Year', font: { size: 13, weight: '600' } },
+                grid: { color: '#f0f0f0' }
+            }
+        }
+    },
+    plugins: [{
+        afterDraw: function(chart) {
+            const ctx2 = chart.ctx;
+            chart.data.datasets.forEach((ds, dsIdx) => {
+                const meta = chart.getDatasetMeta(dsIdx);
+                meta.data.forEach((bar, i) => {
+                    const val = ds.data[i];
+                    ctx2.save();
+                    ctx2.fillStyle = '#1a1a2e';
+                    ctx2.font = 'bold 11px Aptos, Segoe UI, sans-serif';
+                    ctx2.textAlign = 'center';
+                    ctx2.fillText(val, bar.x, bar.y - 5);
+                    ctx2.restore();
+                });
+            });
+        }
+    }]
+});
+
+function downloadPNG() {
+    const link = document.createElement('a');
+    link.download = 'fema_per_year_rates.png';
+    link.href = chart.toBase64Image('image/png', 1);
+    link.click();
+}
+</script>
+</body>
+</html>

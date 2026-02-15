@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FEMA Disaster Declarations — Interactive Visualizations</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            color: #1a1a2e;
+            padding: 40px 24px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 26px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #1a1a2e;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 36px;
+            line-height: 1.5;
+        }
+        .viz-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .viz-list li a {
+            display: block;
+            padding: 20px 24px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #1a1a2e;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+        .viz-list li a:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
+        }
+        .viz-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .viz-desc {
+            font-size: 13px;
+            color: #6c757d;
+            line-height: 1.4;
+        }
+        .viz-number {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            background: #f3f4f6;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 24px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #6c757d;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        footer {
+            margin-top: 48px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 12px;
+            color: #9ca3af;
+            line-height: 1.6;
+        }
+        footer a { color: #6c757d; }
+    </style>
+</head>
+<body>
+    <h1>FEMA Disaster Declarations</h1>
+    <div class="subtitle">
+        Interactive visualizations comparing major disaster declaration outcomes across seven presidential administrations (2001–present).<br>
+        Each chart is interactive — hover for details, click legends to filter, and download as PNG.
+    </div>
+
+    <ul class="viz-list">
+        <li>
+            <a href="viz_summary_table.html">
+                <span class="viz-number">1</span>
+                <span class="viz-title">Summary Table</span>
+                <div class="viz-desc">Side-by-side comparison of approvals, denials, denial rates, and median processing times for all seven administrations.</div>
+            </a>
+        </li>
+        <li>
+            <a href="viz_approval_rate.html">
+                <span class="viz-number">2</span>
+                <span class="viz-title">Approval &amp; Denial Rates</span>
+                <div class="viz-desc">Stacked bar chart showing the proportion of approved vs. denied disaster requests by administration.</div>
+            </a>
+        </li>
+        <li>
+            <a href="viz_processing_time.html">
+                <span class="viz-number">3</span>
+                <span class="viz-title">Processing Time</span>
+                <div class="viz-desc">Median and average days from request to decision for both approvals and denials.</div>
+            </a>
+        </li>
+        <li>
+            <a href="viz_per_year_rates.html">
+                <span class="viz-number">4</span>
+                <span class="viz-title">Per-Year Rates</span>
+                <div class="viz-desc">Annualized approval and denial counts, normalizing for differences in term length.</div>
+            </a>
+        </li>
+        <li>
+            <a href="viz_yearly_trend.html">
+                <span class="viz-number">5</span>
+                <span class="viz-title">Yearly Trend</span>
+                <div class="viz-desc">Year-by-year timeline of approved and denied declarations from 2001 to present, with administration bands and transition markers.</div>
+            </a>
+        </li>
+        <li>
+            <a href="viz_disaster_types.html">
+                <span class="viz-number">6</span>
+                <span class="viz-title">Disaster Types</span>
+                <div class="viz-desc">Grouped bar chart breaking down declarations by incident type (hurricanes, severe storms, fires, etc.) across administrations.</div>
+            </a>
+        </li>
+        <li>
+            <a href="viz_political_scatter.html">
+                <span class="viz-number">7</span>
+                <span class="viz-title">Political Context Scatter Plot</span>
+                <div class="viz-desc">Butterfly scatter plot showing disaster outcomes vs. state vote margin, revealing whether political alignment affects declaration decisions.</div>
+            </a>
+        </li>
+    </ul>
+
+    <footer>
+        Data source: <a href="https://www.fema.gov/api/open" target="_blank">OpenFEMA API</a> — FemaWebDisasterDeclarations &amp; DeclarationDenials datasets.<br>
+        Vote margins from official state election results (2000–2024). COVID-19 (Biological) declarations excluded.
+    </footer>
+</body>
+</html>

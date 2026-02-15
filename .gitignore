@@ -1,0 +1,11 @@
+# Raw data & intermediate files
+*.csv
+*.json
+*.xlsx
+*.ps1
+nul
+.claude/
+
+# Keep these (override ignores)
+!fema_declarations_political.js
+!sba_fy22_state_aggregated.json

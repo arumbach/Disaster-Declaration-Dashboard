@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FEMA Declarations by Disaster Type</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff; color: #1a1a2e;
+            padding: 40px 24px; max-width: 960px; margin: 0 auto;
+        }
+        h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #6c757d; margin-bottom: 24px; }
+        .chart-wrap { position: relative; height: 500px; margin-bottom: 16px; }
+        .footnote { font-size: 11px; color: #6c757d; line-height: 1.6; margin-top: 12px; }
+        .btn-download {
+            display: inline-block; margin-top: 16px; padding: 8px 16px;
+            background: #003366; color: white; border: none; border-radius: 4px;
+            font-size: 13px; cursor: pointer;
+        }
+        .btn-download:hover { background: #004488; }
+    </style>
+</head>
+<body>
+    <h1>Major Disaster Declarations by Incident Type</h1>
+    <p class="subtitle">Top disaster types across seven administration periods — total requests (approved + denied)</p>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    <div class="footnote">
+        Shows the 8 most common incident types. "Other" aggregates all remaining types.
+        COVID-19 (Biological) declarations excluded. Trump 2 is a partial term. Data: OpenFEMA API.
+    </div>
+    <button class="btn-download" onclick="downloadPNG()">Download as PNG</button>
+
+<script>
+// Top disaster types from the data, aggregated by admin
+Chart.defaults.font.family = "'Aptos', 'Segoe UI', Roboto, sans-serif";
+
+const admins = ['Bush 1', 'Bush 2', 'Obama 1', 'Obama 2', 'Trump 1', 'Biden', 'Trump 2'];
+const adminColors = ['#b91c1c', '#f87171', '#1d4ed8', '#3b82f6', '#dc2626', '#2563eb', '#ef4444'];
+
+// Build from CSV data — top types by total across all admins
+const typeData = {
+    'Severe Storm':    [144, 212, 202, 110, 102, 122, 32],
+    'Flood':           [18, 14, 34, 63, 66, 72, 13],
+    'Hurricane':       [30, 23, 37, 7, 42, 29, 0],
+    'Snowstorm/Winter':[1, 4, 17, 9, 7, 20, 5],
+    'Fire':            [8, 6, 11, 13, 11, 23, 3],
+    'Tornado':         [9, 7, 9, 8, 14, 14, 0],
+    'Severe Ice Storm':[13, 11, 3, 11, 4, 8, 1],
+    'Tropical Storm':  [0, 0, 0, 0, 0, 15, 1]
+};
+
+const types = Object.keys(typeData);
+const datasets = admins.map((admin, i) => ({
+    label: admin,
+    data: types.map(t => typeData[t][i]),
+    backgroundColor: adminColors[i] + 'cc',
+    borderColor: adminColors[i],
+    borderWidth: 1,
+    borderRadius: 3,
+    barPercentage: 0.85,
+    categoryPercentage: 0.8
+}));
+
+const ctx = document.getElementById('chart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: types,
+        datasets: datasets
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: 'y',
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { size: 11 }, usePointStyle: true, pointStyle: 'rectRounded', padding: 16 }
+            },
+            tooltip: {
+                callbacks: {
+                    label: ctx => `${ctx.dataset.label}: ${ctx.parsed.x} declarations`
+                }
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                title: { display: true, text: 'Total Declarations (Approved + Denied)', font: { size: 12, weight: '600' } },
+                grid: { color: '#f0f0f0' }
+            },
+            y: {
+                grid: { display: false },
+                ticks: { font: { size: 12, weight: '500' } }
+            }
+        }
+    }
+});
+
+function downloadPNG() {
+    const link = document.createElement('a');
+    link.download = 'fema_disaster_types_by_admin.png';
+    link.href = chart.toBase64Image('image/png', 1);
+    link.click();
+}
+</script>
+</body>
+</html>

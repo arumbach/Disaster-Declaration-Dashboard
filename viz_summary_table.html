@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FEMA Major Disaster Declarations — Administration Comparison</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            color: #1a1a2e;
+            padding: 40px 24px;
+            max-width: 960px;
+            margin: 0 auto;
+        }
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 6px;
+            color: #1a1a2e;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        thead th {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+            border-bottom: 2px solid #dee2e6;
+            white-space: nowrap;
+        }
+        thead th.num { text-align: right; }
+        tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: middle;
+        }
+        tbody td.num {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        tbody tr:last-child td { border-bottom: 2px solid #dee2e6; }
+        tbody tr:hover { background: #f8f9fa; }
+
+        .admin-name {
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .party-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .party-dot.dem { background: #1d4ed8; }
+        .party-dot.rep { background: #dc2626; }
+
+        .denial-rate {
+            font-weight: 700;
+        }
+        .rate-bar {
+            display: inline-block;
+            height: 8px;
+            border-radius: 4px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .rate-bar.denial { background: #dc3545; }
+        .rate-bar.approval { background: #28a745; }
+
+        .days-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .days-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: #6366f1;
+            opacity: 0.6;
+        }
+
+        .footnote {
+            font-size: 12px;
+            color: #6c757d;
+            line-height: 1.6;
+            margin-top: 12px;
+        }
+        .footnote strong { color: #495057; }
+
+        .highlight-row td { background: #fff7ed; }
+
+        @media print {
+            body { padding: 20px; }
+            tbody tr:hover { background: transparent; }
+        }
+    </style>
+</head>
+<body>
+    <h1>FEMA Major Disaster Declarations by Presidential Administration</h1>
+    <p class="subtitle">
+        Comparing approval rates, denial rates, and processing times across seven presidential administration periods (2001–present).
+        Data from OpenFEMA API. Major Disaster declarations only (COVID-19 excluded).
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Administration</th>
+                <th class="num">Approved</th>
+                <th class="num">Denied</th>
+                <th class="num">Total</th>
+                <th class="num">Denial Rate</th>
+                <th class="num">Median Days<br>to Approval</th>
+                <th class="num">Median Days<br>to Denial</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <div class="footnote">
+        <strong>Methodology:</strong> Declarations assigned to the administration in office when the decision was made (declaration date for approvals, status date for denials).
+        Bush and Obama terms are each split into two to align with the corresponding presidential election cycle for political analysis.
+        Trump 2 data covers Jan 20, 2025 through present and is a partial term.<br>
+        <strong>Data:</strong> OpenFEMA API — FemaWebDisasterDeclarations and DeclarationDenials endpoints. Major Disaster declarations only (Emergency, Fire Management, and COVID-19 Biological declarations excluded).
+        Tribal nation declarations are included in the total counts.
+    </div>
+
+<script>
+const data = [
+    { name: "Bush 1",  party: "rep", years: "2001–2005", approved: 214, denied: 46, denialRate: 17.7, medianApproval: 6, medianDenial: 32.5 },
+    { name: "Bush 2",  party: "rep", years: "2005–2009", approved: 243, denied: 46, denialRate: 15.9, medianApproval: 11, medianDenial: 63.5 },
+    { name: "Obama 1", party: "dem", years: "2009–2013", approved: 283, denied: 43, denialRate: 13.2, medianApproval: 12, medianDenial: 44 },
+    { name: "Obama 2", party: "dem", years: "2013–2017", approved: 194, denied: 45, denialRate: 18.8, medianApproval: 10, medianDenial: 29 },
+    { name: "Trump 1", party: "rep", years: "2017–2021", approved: 230, denied: 35, denialRate: 13.2, medianApproval: 18, medianDenial: 61 },
+    { name: "Biden",   party: "dem", years: "2021–2025", approved: 272, denied: 48, denialRate: 15, medianApproval: 19, medianDenial: 51 },
+    { name: "Trump 2", party: "rep", years: "2025–present", approved: 40, denied: 17, denialRate: 29.8, medianApproval: 37, medianDenial: 107, highlight: true }
+];
+
+const maxMedianApproval = Math.max(...data.map(d => d.medianApproval));
+const maxMedianDenial = Math.max(...data.map(d => d.medianDenial));
+const maxDenialRate = Math.max(...data.map(d => d.denialRate));
+
+const tbody = document.getElementById('tableBody');
+data.forEach(d => {
+    const total = d.approved + d.denied;
+    const approvalBarW = Math.round((d.medianApproval / maxMedianApproval) * 60);
+    const denialBarW = Math.round((d.medianDenial / maxMedianDenial) * 60);
+    const rateBarW = Math.round((d.denialRate / maxDenialRate) * 50);
+
+    const tr = document.createElement('tr');
+    if (d.highlight) tr.classList.add('highlight-row');
+    tr.innerHTML = `
+        <td>
+            <div class="admin-name">
+                <span class="party-dot ${d.party}"></span>
+                <span>${d.name}</span>
+            </div>
+            <div style="font-size:12px;color:#6c757d;margin-left:18px">${d.years}</div>
+        </td>
+        <td class="num">${d.approved.toLocaleString()}</td>
+        <td class="num">${d.denied.toLocaleString()}</td>
+        <td class="num">${total.toLocaleString()}</td>
+        <td class="num">
+            <span class="rate-bar denial" style="width:${rateBarW}px"></span>
+            <span class="denial-rate">${d.denialRate}%</span>
+        </td>
+        <td class="num">
+            <div class="days-cell">
+                <span class="days-bar" style="width:${approvalBarW}px"></span>
+                <span>${d.medianApproval} days</span>
+            </div>
+        </td>
+        <td class="num">
+            <div class="days-cell">
+                <span class="days-bar" style="width:${denialBarW}px; background:#dc3545;"></span>
+                <span>${d.medianDenial} days</span>
+            </div>
+        </td>
+    `;
+    tbody.appendChild(tr);
+});
+</script>
+</body>
+</html>

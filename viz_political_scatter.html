@@ -1,0 +1,268 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FEMA Declarations vs. State Vote Margin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff; color: #1a1a2e;
+            padding: 40px 24px; max-width: 960px; margin: 0 auto;
+        }
+        h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #6c757d; margin-bottom: 20px; line-height: 1.5; }
+        .controls {
+            display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap;
+        }
+        .controls label { font-size: 13px; font-weight: 600; }
+        .controls select {
+            padding: 6px 12px; border: 1px solid #dee2e6; border-radius: 4px; font-size: 13px;
+        }
+        .chart-container {
+            position: relative;
+            height: 560px;
+            margin-bottom: 16px;
+        }
+        .chart-container canvas { position: relative; z-index: 2; }
+        .quadrant-labels {
+            position: absolute; top: 40px; left: 40px; right: 20px; bottom: 40px;
+            pointer-events: none; z-index: 1;
+        }
+        .q-label {
+            position: absolute;
+            font-size: 12px;
+            color: #c0c0c0;
+            font-style: italic;
+            font-weight: 500;
+        }
+        .q-label.tl { top: 8px; left: 8px; }
+        .q-label.tr { top: 8px; right: 8px; text-align: right; }
+        .q-label.bl { bottom: 8px; left: 8px; }
+        .q-label.br { bottom: 8px; right: 8px; text-align: right; }
+        .footnote { font-size: 11px; color: #6c757d; line-height: 1.6; margin-top: 12px; }
+        .btn-download {
+            display: inline-block; margin-top: 16px; padding: 8px 16px;
+            background: #003366; color: white; border: none; border-radius: 4px;
+            font-size: 13px; cursor: pointer;
+        }
+        .btn-download:hover { background: #004488; }
+    </style>
+</head>
+<body>
+    <h1>Disaster Declaration Outcomes vs. State Presidential Vote</h1>
+    <p class="subtitle">
+        Every individual Major Disaster declaration plotted by days to decision and the requesting state's presidential vote margin.
+        Denials extend left, approvals extend right. Y-axis = state vote margin.
+        Tribal declarations and territories excluded.
+    </p>
+    <div class="controls">
+        <label>Administration:</label>
+        <select id="adminSelect">
+            <option value="Bush 1">Bush 1 (2001–05)</option>
+            <option value="Bush 2">Bush 2 (2005–09)</option>
+            <option value="Obama 1">Obama 1 (2009–13)</option>
+            <option value="Obama 2">Obama 2 (2013–17)</option>
+            <option value="Trump 1">Trump 1 (2017–21)</option>
+            <option value="Biden" selected>Biden (2021–25)</option>
+            <option value="Trump 2">Trump 2 (2025–)</option>
+        </select>
+    </div>
+    <div class="chart-container">
+        <canvas id="chart"></canvas>
+        <div class="quadrant-labels">
+            <div class="q-label tl" id="qTL">Denied · Rep states</div>
+            <div class="q-label tr" id="qTR">Approved · Rep states</div>
+            <div class="q-label bl" id="qBL">Denied · Dem states</div>
+            <div class="q-label br" id="qBR">Approved · Dem states</div>
+        </div>
+    </div>
+    <div class="footnote">
+        Vote margin = Republican % − Democratic % (positive = R won state).
+        X-axis: denials shown as negative days (left), approvals as positive days (right).
+        Territories excluded (no presidential vote). Tribal declarations excluded.
+        Two outliers excluded: a Biden-era Ohio denial (547 days) and an Obama 1-era Arizona denial (423 days).
+        Data: OpenFEMA API + state election results. Major Disaster declarations only (COVID-19 excluded).
+    </div>
+    <button class="btn-download" onclick="downloadPNG()">Download as PNG</button>
+
+<script src="fema_declarations_political.js"></script>
+<script>
+Chart.defaults.font.family = "'Aptos', 'Segoe UI', Roboto, sans-serif";
+
+// All individual declaration records (non-tribal, with vote margins, COVID excluded)
+const rawData = window._femaData;
+let chart = null;
+const ctx = document.getElementById('chart').getContext('2d');
+buildChart();
+
+function buildChart() {
+    const adminFilter = document.getElementById('adminSelect').value;
+
+    // Exclude outliers (547d Ohio denial, 423d Arizona denial) for visual clarity
+    const filtered = rawData.filter(d => d.a === adminFilter && d.d <= 400);
+
+    // Split into approved (positive X) and denied (negative X)
+    const approvedPoints = [];
+    const deniedPoints = [];
+    filtered.forEach(p => {
+        const isApproved = p.st === 'Approved';
+        const point = {
+            x: isApproved ? p.d : -p.d,
+            y: p.vm,
+            days: p.d,
+            state: p.s,
+            stateCode: p.sc,
+            voteMargin: p.vm,
+            r: 5
+        };
+        if (isApproved) {
+            approvedPoints.push(point);
+        } else {
+            deniedPoints.push(point);
+        }
+    });
+
+    const allPoints = [...approvedPoints, ...deniedPoints];
+
+    // Symmetric axis bounds
+    const maxAbsX = Math.max(...allPoints.map(p => Math.abs(p.x)), 1);
+    const maxAbsY = Math.max(...allPoints.map(p => Math.abs(p.y)), 1);
+    const xLimit = Math.ceil(maxAbsX * 1.1);
+    const yLimit = Math.ceil(maxAbsY * 1.1);
+
+    // Quadrant labels
+    document.getElementById('qTL').innerHTML = `Denied · Rep states`;
+    document.getElementById('qTR').innerHTML = `Approved · Rep states`;
+    document.getElementById('qBL').innerHTML = `Denied · Dem states`;
+    document.getElementById('qBR').innerHTML = `Approved · Dem states`;
+
+    if (chart) chart.destroy();
+
+    chart = new Chart(ctx, {
+        type: 'bubble',
+        data: {
+            datasets: [
+                {
+                    label: 'Approved',
+                    data: approvedPoints,
+                    backgroundColor: 'rgba(40, 167, 69, 0.45)',
+                    borderColor: 'rgba(40, 167, 69, 0.7)',
+                    borderWidth: 1,
+                    hoverBackgroundColor: 'rgba(40, 167, 69, 0.8)',
+                    hoverBorderWidth: 2
+                },
+                {
+                    label: 'Denied',
+                    data: deniedPoints,
+                    backgroundColor: 'rgba(220, 53, 69, 0.5)',
+                    borderColor: 'rgba(220, 53, 69, 0.8)',
+                    borderWidth: 1,
+                    hoverBackgroundColor: 'rgba(220, 53, 69, 0.9)',
+                    hoverBorderWidth: 2
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: { size: 12 },
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 20,
+                        generateLabels: function(chart) {
+                            const app = chart.data.datasets[0];
+                            const den = chart.data.datasets[1];
+                            return [
+                                {
+                                    text: `Approved (${app.data.length})`,
+                                    fillStyle: app.backgroundColor,
+                                    strokeStyle: app.borderColor,
+                                    pointStyle: 'circle',
+                                    datasetIndex: 0,
+                                    hidden: !chart.isDatasetVisible(0)
+                                },
+                                {
+                                    text: `Denied (${den.data.length})`,
+                                    fillStyle: den.backgroundColor,
+                                    strokeStyle: den.borderColor,
+                                    pointStyle: 'circle',
+                                    datasetIndex: 1,
+                                    hidden: !chart.isDatasetVisible(1)
+                                }
+                            ];
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(ctx) {
+                            const d = ctx.raw;
+                            const status = ctx.datasetIndex === 0 ? 'Approved' : 'Denied';
+                            return [
+                                `${d.state} (${d.stateCode}) — ${status}`,
+                                `Vote margin: ${d.voteMargin > 0 ? '+' : ''}${d.voteMargin}% ${d.voteMargin >= 0 ? '(R)' : '(D)'}`,
+                                `Days to decision: ${d.days}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'center',
+                    min: -xLimit,
+                    max: xLimit,
+                    title: {
+                        display: true,
+                        text: '← Denied (days to denial)                                              Approved (days to approval) →',
+                        font: { size: 12, weight: '600' }
+                    },
+                    grid: { color: c => c.tick.value === 0 ? '#999' : '#f0f0f0' },
+                    ticks: {
+                        callback: v => {
+                            if (v === 0) return '0';
+                            return Math.abs(v) + 'd';
+                        }
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    position: 'center',
+                    min: -yLimit,
+                    max: yLimit,
+                    title: {
+                        display: true,
+                        text: '↑ More Republican          State Vote Margin (R% − D%)          More Democratic ↓',
+                        font: { size: 11, weight: '600' }
+                    },
+                    grid: { color: c => c.tick.value === 0 ? '#999' : '#f0f0f0' },
+                    ticks: {
+                        callback: v => v === 0 ? '0' : (v > 0 ? '+' : '') + v + '%',
+                        stepSize: 10
+                    }
+                }
+            }
+        }
+    });
+}
+
+document.getElementById('adminSelect').addEventListener('change', buildChart);
+
+function downloadPNG() {
+    const link = document.createElement('a');
+    link.download = 'fema_political_scatter.png';
+    link.href = chart.toBase64Image('image/png', 1);
+    link.click();
+}
+</script>
+</body>
+</html>

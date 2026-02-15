@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FEMA Processing Time by Administration</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff; color: #1a1a2e;
+            padding: 40px 24px; max-width: 900px; margin: 0 auto;
+        }
+        h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #6c757d; margin-bottom: 24px; }
+        .chart-wrap { position: relative; height: 450px; margin-bottom: 16px; }
+        .footnote { font-size: 11px; color: #6c757d; line-height: 1.6; margin-top: 12px; }
+        .btn-download {
+            display: inline-block; margin-top: 16px; padding: 8px 16px;
+            background: #003366; color: white; border: none; border-radius: 4px;
+            font-size: 13px; cursor: pointer;
+        }
+        .btn-download:hover { background: #004488; }
+    </style>
+</head>
+<body>
+    <h1>Median Days from Request to Decision by Administration</h1>
+    <p class="subtitle">How long each administration takes to approve or deny Major Disaster declaration requests</p>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    <div class="footnote">
+        Processing time = days between state's declaration request date and the federal decision date.
+        Major Disaster declarations only (COVID-19 excluded). Trump 2 is a partial term (Jan 2025–present). Data: OpenFEMA API.
+    </div>
+    <button class="btn-download" onclick="downloadPNG()">Download as PNG</button>
+
+<script>
+const labels = ['Bush 1\n(2001–05)', 'Bush 2\n(2005–09)', 'Obama 1\n(2009–13)', 'Obama 2\n(2013–17)', 'Trump 1\n(2017–21)', 'Biden\n(2021–25)', 'Trump 2\n(2025–)'];
+
+Chart.defaults.font.family = "'Aptos', 'Segoe UI', Roboto, sans-serif";
+
+const medianApproval = [6, 11, 12, 10, 18, 19, 37];
+const medianDenial = [32.5, 63.5, 44, 29, 61, 51, 107];
+const avgApproval = [7.9, 15.2, 13.9, 11.7, 23.7, 22.8, 36.6];
+const avgDenial = [46.8, 67.3, 54.1, 38.2, 67.9, 83.1, 108.6];
+
+const ctx = document.getElementById('chart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [
+            {
+                label: 'Median Days to Approval',
+                data: medianApproval,
+                backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                borderColor: '#28a745',
+                borderWidth: 1.5,
+                borderRadius: 4,
+                barPercentage: 0.8,
+                categoryPercentage: 0.7
+            },
+            {
+                label: 'Median Days to Denial',
+                data: medianDenial,
+                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                borderColor: '#dc3545',
+                borderWidth: 1.5,
+                borderRadius: 4,
+                barPercentage: 0.8,
+                categoryPercentage: 0.7
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { size: 12 }, usePointStyle: true, pointStyle: 'rectRounded', padding: 20 }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(ctx) {
+                        const i = ctx.dataIndex;
+                        const ds = ctx.datasetIndex;
+                        if (ds === 0) {
+                            return [`Median: ${medianApproval[i]} days`, `Average: ${avgApproval[i]} days`];
+                        } else {
+                            return [`Median: ${medianDenial[i]} days`, `Average: ${avgDenial[i]} days`];
+                        }
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Median Days to Decision', font: { size: 13, weight: '600' } },
+                ticks: { callback: v => v + 'd' },
+                grid: { color: '#f0f0f0' }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { font: { size: 12 } }
+            }
+        }
+    },
+    plugins: [{
+        afterDraw: function(chart) {
+            const ctx2 = chart.ctx;
+            chart.data.datasets.forEach((ds, dsIdx) => {
+                const meta = chart.getDatasetMeta(dsIdx);
+                meta.data.forEach((bar, i) => {
+                    const val = ds.data[i];
+                    ctx2.save();
+                    ctx2.fillStyle = '#1a1a2e';
+                    ctx2.font = 'bold 12px Aptos, Segoe UI, sans-serif';
+                    ctx2.textAlign = 'center';
+                    ctx2.fillText(val + 'd', bar.x, bar.y - 6);
+                    ctx2.restore();
+                });
+            });
+        }
+    }]
+});
+
+function downloadPNG() {
+    const link = document.createElement('a');
+    link.download = 'fema_processing_time_by_admin.png';
+    link.href = chart.toBase64Image('image/png', 1);
+    link.click();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FEMA Approval &amp; Denial Rates by Administration</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            color: #1a1a2e;
+            padding: 40px 24px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #6c757d; margin-bottom: 24px; }
+        .chart-wrap { position: relative; height: 420px; margin-bottom: 16px; }
+        .footnote { font-size: 11px; color: #6c757d; line-height: 1.6; margin-top: 12px; }
+        .btn-download {
+            display: inline-block; margin-top: 16px; padding: 8px 16px;
+            background: #003366; color: white; border: none; border-radius: 4px;
+            font-size: 13px; cursor: pointer; text-decoration: none;
+        }
+        .btn-download:hover { background: #004488; }
+    </style>
+</head>
+<body>
+    <h1>Major Disaster Declaration Denial Rate by Administration</h1>
+    <p class="subtitle">Percentage of Major Disaster declaration requests denied, by presidential administration (2001–present)</p>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    <div class="footnote">
+        Denial rate = denied declarations ÷ total requests × 100. Major Disaster declarations only.
+        Trump 2 is a partial term (Jan 2025–present). COVID-19 declarations excluded. Data: OpenFEMA API.
+    </div>
+    <button class="btn-download" onclick="downloadPNG()">Download as PNG</button>
+
+<script>
+Chart.defaults.font.family = "'Aptos', 'Segoe UI', Roboto, sans-serif";
+
+const labels = ['Bush 1\n(2001–05)', 'Bush 2\n(2005–09)', 'Obama 1\n(2009–13)', 'Obama 2\n(2013–17)', 'Trump 1\n(2017–21)', 'Biden\n(2021–25)', 'Trump 2\n(2025–)'];
+const denialRates = [17.7, 15.9, 13.2, 18.8, 13.2, 15, 29.8];
+const approvalRates = [82.3, 84.1, 86.8, 81.2, 86.8, 85, 70.2];
+const colors = ['#b91c1c', '#f87171', '#1d4ed8', '#3b82f6', '#dc2626', '#2563eb', '#ef4444'];
+const denialColors = ['rgba(185,28,28,0.85)', 'rgba(248,113,113,0.85)', 'rgba(29,78,216,0.85)', 'rgba(59,130,246,0.85)', 'rgba(220,38,38,0.85)', 'rgba(37,99,235,0.85)', 'rgba(239,68,68,0.85)'];
+
+const ctx = document.getElementById('chart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'Denial Rate (%)',
+            data: denialRates,
+            backgroundColor: denialColors,
+            borderColor: colors,
+            borderWidth: 2,
+            borderRadius: 4,
+            barPercentage: 0.65
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: ctx => {
+                        const i = ctx.dataIndex;
+                        return [
+                            `Denial Rate: ${denialRates[i]}%`,
+                            `Approval Rate: ${approvalRates[i]}%`
+                        ];
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 40,
+                title: { display: true, text: 'Denial Rate (%)', font: { size: 13, weight: '600' } },
+                ticks: { callback: v => v + '%' },
+                grid: { color: '#f0f0f0' }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { font: { size: 12 } }
+            }
+        }
+    },
+    plugins: [{
+        afterDraw: function(chart) {
+            const ctx = chart.ctx;
+            chart.data.datasets[0].data.forEach((val, i) => {
+                const meta = chart.getDatasetMeta(0);
+                const bar = meta.data[i];
+                ctx.save();
+                ctx.fillStyle = '#1a1a2e';
+                ctx.font = 'bold 14px Aptos, Segoe UI, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(val + '%', bar.x, bar.y - 8);
+                ctx.restore();
+            });
+        }
+    }]
+});
+
+function downloadPNG() {
+    const link = document.createElement('a');
+    link.download = 'fema_denial_rate_by_admin.png';
+    link.href = chart.toBase64Image('image/png', 1);
+    link.click();
+}
+</script>
+</body>
+</html>

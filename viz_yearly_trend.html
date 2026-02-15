@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FEMA Declarations Year-over-Year Trend</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff; color: #1a1a2e;
+            padding: 40px 24px; max-width: 960px; margin: 0 auto;
+        }
+        h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #6c757d; margin-bottom: 24px; }
+        .chart-wrap { position: relative; height: 420px; margin-bottom: 16px; }
+        .footnote { font-size: 11px; color: #6c757d; line-height: 1.6; margin-top: 12px; }
+        .btn-download {
+            display: inline-block; margin-top: 16px; padding: 8px 16px;
+            background: #003366; color: white; border: none; border-radius: 4px;
+            font-size: 13px; cursor: pointer;
+        }
+        .btn-download:hover { background: #004488; }
+    </style>
+</head>
+<body>
+    <h1>Major Disaster Declarations by Year</h1>
+    <p class="subtitle">Annual approved and denied Major Disaster declarations with administration transition markers (2001–2026)</p>
+    <div class="chart-wrap"><canvas id="chart"></canvas></div>
+    <div class="footnote">
+        Each year shows total approved and denied declarations decided that calendar year.
+        Transition years may include decisions by both outgoing and incoming administrations.
+        COVID-19 (Biological) declarations excluded. 2026 is partial year. Data: OpenFEMA API.
+    </div>
+    <button class="btn-download" onclick="downloadPNG()">Download as PNG</button>
+
+<script>
+Chart.defaults.font.family = "'Aptos', 'Segoe UI', Roboto, sans-serif";
+
+// Aggregate by year (combining both admins if a year is split)
+const yearData = {};
+const rawRows = [
+    {y:2001,app:41,den:11},{y:2002,app:49,den:9},{y:2003,app:56,den:14},{y:2004,app:68,den:12},
+    {y:2005,app:48,den:13},{y:2006,app:52,den:11},{y:2007,app:63,den:7},{y:2008,app:75,den:15},
+    {y:2009,app:59,den:6},{y:2010,app:81,den:11},{y:2011,app:99,den:15},{y:2012,app:47,den:10},
+    {y:2013,app:62,den:6},{y:2014,app:45,den:12},{y:2015,app:43,den:10},{y:2016,app:46,den:17},
+    {y:2017,app:59,den:9},{y:2018,app:59,den:10},{y:2019,app:60,den:5},{y:2020,app:47,den:12},
+    {y:2021,app:56,den:9},{y:2022,app:46,den:9},{y:2023,app:69,den:14},{y:2024,app:102,den:15},
+    {y:2025,app:42,den:13},{y:2026,app:2,den:5}
+];
+
+const years = rawRows.map(r => r.y);
+const approved = rawRows.map(r => r.app);
+const denied = rawRows.map(r => r.den);
+
+// Administration transition lines (inauguration years)
+const transitions = [
+    { x: '2005', label: 'Bush 2' },
+    { x: '2009', label: 'Obama 1' },
+    { x: '2013', label: 'Obama 2' },
+    { x: '2017', label: 'Trump 1' },
+    { x: '2021', label: 'Biden' },
+    { x: '2025', label: 'Trump 2' }
+];
+
+// Background bands for administrations
+const adminBands = [
+    { x1: 2000.5, x2: 2004.5, color: 'rgba(185,28,28,0.06)', label: 'Bush 1' },
+    { x1: 2004.5, x2: 2008.5, color: 'rgba(248,113,113,0.06)', label: 'Bush 2' },
+    { x1: 2008.5, x2: 2012.5, color: 'rgba(29,78,216,0.06)', label: 'Obama 1' },
+    { x1: 2012.5, x2: 2016.5, color: 'rgba(59,130,246,0.06)', label: 'Obama 2' },
+    { x1: 2016.5, x2: 2020.5, color: 'rgba(220,38,38,0.06)', label: 'Trump 1' },
+    { x1: 2020.5, x2: 2024.5, color: 'rgba(37,99,235,0.06)', label: 'Biden' },
+    { x1: 2024.5, x2: 2026.5, color: 'rgba(239,68,68,0.06)', label: 'Trump 2' }
+];
+
+const annotations = {};
+adminBands.forEach((band, i) => {
+    annotations['band'+i] = {
+        type: 'box',
+        xMin: years.indexOf(Math.ceil(band.x1)),
+        xMax: years.indexOf(Math.floor(band.x2)),
+        backgroundColor: band.color,
+        borderWidth: 0
+    };
+});
+transitions.forEach((t, i) => {
+    const idx = years.indexOf(parseInt(t.x));
+    if (idx >= 0) {
+        annotations['line'+i] = {
+            type: 'line',
+            xMin: idx - 0.5,
+            xMax: idx - 0.5,
+            borderColor: '#999',
+            borderWidth: 1,
+            borderDash: [4, 4],
+            label: {
+                display: true,
+                content: t.label,
+                position: 'start',
+                backgroundColor: 'rgba(0,0,0,0.7)',
+                color: '#fff',
+                font: { size: 10 },
+                padding: 4
+            }
+        };
+    }
+});
+
+const ctx = document.getElementById('chart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: years,
+        datasets: [
+            {
+                label: 'Approved',
+                data: approved,
+                backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                borderColor: '#28a745',
+                borderWidth: 1,
+                borderRadius: 3
+            },
+            {
+                label: 'Denied',
+                data: denied,
+                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                borderColor: '#dc3545',
+                borderWidth: 1,
+                borderRadius: 3
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { size: 12 }, usePointStyle: true, pointStyle: 'rectRounded', padding: 20 }
+            },
+            annotation: { annotations: annotations },
+            tooltip: {
+                callbacks: {
+                    afterBody: function(items) {
+                        const i = items[0].dataIndex;
+                        const total = approved[i] + denied[i];
+                        const rate = ((approved[i] / total) * 100).toFixed(1);
+                        return `Total: ${total} | Approval rate: ${rate}%`;
+                    }
+                }
+            }
+        },
+        scales: {
+            x: {
+                stacked: true,
+                grid: { display: false },
+                ticks: { font: { size: 11 } }
+            },
+            y: {
+                stacked: true,
+                beginAtZero: true,
+                title: { display: true, text: 'Number of Declarations', font: { size: 13, weight: '600' } },
+                grid: { color: '#f0f0f0' }
+            }
+        }
+    }
+});
+
+function downloadPNG() {
+    const link = document.createElement('a');
+    link.download = 'fema_yearly_trend.png';
+    link.href = chart.toBase64Image('image/png', 1);
+    link.click();
+}
+</script>
+</body>
+</html>
