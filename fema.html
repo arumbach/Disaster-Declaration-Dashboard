@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presidential Disaster Declarations — Disaster Lab</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="site-header">
+        <div class="header-inner">
+            <a href="index.html" class="site-name">Disaster Lab</a>
+            <nav class="site-nav">
+                <a href="index.html">Home</a>
+                <a href="about.html">About</a>
+                <a href="contact.html">Contact</a>
+            </nav>
+        </div>
+    </header>
+
+    <div class="page-content">
+        <a href="index.html" class="back-link">Disaster Lab Projects</a>
+
+        <h1>Presidential Disaster Declarations</h1>
+        <div class="subtitle">
+            [PROJECT DESCRIPTION PLACEHOLDER — Briefly describe what this project examines,
+            the data sources used, and what readers will find in the dashboard and visualizations below.]
+        </div>
+
+        <div class="card-grid">
+            <a href="fema-dashboard.html" class="card">
+                <span class="card-label">Dashboard</span>
+                <div class="card-title">Presidential Disaster Declarations Under the 2nd Trump Administration</div>
+                <div class="card-desc">Live-updating dashboard tracking disaster declaration requests, approvals, denials, and processing times since January 20, 2025.</div>
+            </a>
+
+            <a href="viz_political_scatter.html" class="card">
+                <span class="card-label">Visualization</span>
+                <div class="card-title">Disaster Declaration Outcomes vs. State Presidential Vote</div>
+                <div class="card-desc">Butterfly scatter plot showing whether a state's political alignment affects disaster declaration decisions, across seven administrations.</div>
+            </a>
+
+            <a href="viz_summary_table.html" class="card">
+                <span class="card-label">Visualization</span>
+                <div class="card-title">Major Disaster Declarations by Presidential Administrations</div>
+                <div class="card-desc">Side-by-side comparison of approvals, denials, denial rates, and median processing times for all seven administrations (2001-present).</div>
+            </a>
+
+            <a href="viz_approval_rate.html" class="card">
+                <span class="card-label">Visualization</span>
+                <div class="card-title">Major Disaster Declaration Denial Rate by Administration</div>
+                <div class="card-desc">Stacked bar chart showing the proportion of approved vs. denied disaster requests by administration.</div>
+            </a>
+
+            <a href="viz_processing_time.html" class="card">
+                <span class="card-label">Visualization</span>
+                <div class="card-title">Days from Declaration Request to Decision by Administration</div>
+                <div class="card-desc">Median and average days from disaster declaration request to decision for both approvals and denials.</div>
+            </a>
+
+            <a href="viz_yearly_trend.html" class="card">
+                <span class="card-label">Visualization</span>
+                <div class="card-title">Major Disaster Declarations and Denials by Year</div>
+                <div class="card-desc">Year-by-year timeline of approved and denied declarations from 2001 to present, with administration bands and transition markers.</div>
+            </a>
+        </div>
+
+        <div style="margin-top: 32px;" class="footnote">
+            Data source: <a href="https://www.fema.gov/api/open" target="_blank">OpenFEMA API</a> — FemaWebDisasterDeclarations &amp; DeclarationDenials datasets.
+            Vote margins from official state election results (2000-2024). COVID-19 (Biological) declarations excluded.
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        &copy; 2025 Disaster Lab
+    </footer>
+</body>
+</html>
