@@ -3,12 +3,8 @@ layout: page
 title: About
 ---
 
-<div class="subtitle">
-    [PLACEHOLDER — A brief one-line intro or subtitle for this page.]
-</div>
+Andrew Rumbach, PhD, is a Senior Fellow and co-lead of the Climate and Communities program at the Urban Institute in Washington, DC. Rumbach is a leading expert on planning and policy-making for natural hazards, disasters and climate change impacts in the United States. His areas of emphasis include affordable housing, zoning and land-use planning, federal disaster policy and community recovery after disasters.
 
-[PLACEHOLDER — Paragraph 1: Who you are and what Disaster Lab is. Example: "Disaster Lab is a project by Andrew Rumbach exploring how the federal government responds to natural disasters through data analysis and interactive visualizations."]
+He has published dozens of peer-reviewed studies on disaster and climate related topics in venues like Natural Hazards, Natural Hazards Review, Housing Studies, the Journal of Urban Affairs, and Habitat International and sits on the editorial boards of the Journal of the American Planning Association and the Journal of Planning Literature.
 
-[PLACEHOLDER — Paragraph 2: Your background and what motivated this work. Example: "With a background in [your field], I started Disaster Lab to make federal disaster data more accessible and transparent."]
-
-[PLACEHOLDER — Paragraph 3: Methodology, data sources, or anything else you'd like readers to know. Example: "All analyses use publicly available data from the OpenFEMA API and official election results. The interactive visualizations are built with Chart.js and are free to explore."]
+Before joining the Urban Institute in 2023, Rumbach was a tenured professor of urban planning at Texas A&M University and before that the University of Colorado Denver. He earned a BA in political science from Reed College and a PhD and MRP in city and regional planning from Cornell University.
