@@ -5,6 +5,5 @@ baseurl: ""
 theme: minima
 
 header_pages:
-  - about.md
   - contact.html
   - disasterlab.html
