@@ -16,6 +16,10 @@
     --radius:             8px;
     --max-width:          800px;
     --max-width-narrow:   680px;
+    --color-accent-subtle: #e8eef5;
+    --color-accent-border: #b8cce0;
+    --shadow-sm:          0 1px 3px rgba(0,0,0,0.06);
+    --shadow-md:          0 4px 12px rgba(0,0,0,0.08);
 }
 
 /* ---- Page Content Container ---- */
@@ -89,12 +93,13 @@
     border-radius: var(--radius);
     text-decoration: none;
     color: var(--color-text);
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 .card:hover {
     border-color: var(--color-link-hover);
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
     color: var(--color-text);
+    transform: translateY(-1px);
 }
 .card-label {
     display: inline-block;
@@ -209,7 +214,227 @@
     margin-bottom: 24px;
 }
 
+/* ---- Featured Project Card (disasterlab.html) ---- */
+.project-featured {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 28px;
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-accent);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: box-shadow 0.2s, border-color 0.2s, transform 0.2s;
+}
+.project-featured:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-accent-border);
+    border-left-color: var(--color-accent);
+    transform: translateY(-1px);
+    color: var(--color-text);
+}
+.project-featured__icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-accent);
+    color: #ffffff;
+    border-radius: 10px;
+    margin-top: 2px;
+}
+.project-featured__body {
+    flex: 1;
+    min-width: 0;
+}
+.project-featured__title {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 8px;
+    color: var(--color-text);
+}
+.project-featured__desc {
+    font-size: 14px;
+    color: var(--color-muted);
+    line-height: 1.55;
+    margin-bottom: 12px;
+}
+.project-featured__meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.meta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-accent);
+    background: var(--color-accent-subtle);
+    padding: 4px 10px;
+    border-radius: 20px;
+}
+.meta-badge svg {
+    flex-shrink: 0;
+}
+.project-featured__arrow {
+    flex-shrink: 0;
+    color: var(--color-light);
+    margin-top: 14px;
+    transition: color 0.15s, transform 0.15s;
+}
+.project-featured:hover .project-featured__arrow {
+    color: var(--color-accent);
+    transform: translateX(3px);
+}
+
+/* ---- Project Intro (description placeholder) ---- */
+.project-intro {
+    margin-bottom: 28px;
+}
+.project-intro__text {
+    font-size: 14px;
+    color: var(--color-muted);
+    line-height: 1.55;
+    padding: 20px 24px;
+    background: var(--color-bg-subtle);
+    border-radius: var(--radius);
+    border-left: 3px solid var(--color-border);
+    font-style: italic;
+}
+
+/* ---- FEMA Page Sections ---- */
+.fema-section {
+    margin-bottom: 32px;
+}
+
+/* ---- Section Header with Icon ---- */
+.section-header--icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.section-header--icon svg {
+    color: var(--color-accent);
+    flex-shrink: 0;
+}
+
+/* ---- Card Internal Layout (icon + body + arrow) ---- */
+.card__icon-col {
+    flex-shrink: 0;
+}
+.card__body {
+    flex: 1;
+    min-width: 0;
+}
+.card__arrow {
+    flex-shrink: 0;
+    color: var(--color-light);
+    margin-top: 2px;
+    transition: color 0.15s, transform 0.15s;
+}
+.card:hover .card__arrow {
+    color: var(--color-accent);
+    transform: translateX(3px);
+}
+
+/* ---- Card Icon Circles ---- */
+.card__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+}
+.card__icon--dashboard {
+    width: 44px;
+    height: 44px;
+    background: var(--color-accent);
+    color: #ffffff;
+}
+.card__icon--viz {
+    width: 36px;
+    height: 36px;
+    background: var(--color-accent-subtle);
+    color: var(--color-accent);
+}
+
+/* ---- Dashboard Card (featured, full-width) ---- */
+.card--dashboard {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px;
+    background: var(--color-bg-subtle);
+    border: 1px solid var(--color-border);
+    border-left: 4px solid var(--color-accent);
+    box-shadow: var(--shadow-sm);
+}
+.card--dashboard:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-accent-border);
+    border-left-color: var(--color-accent);
+}
+.card--dashboard .card-label {
+    color: var(--color-accent);
+    font-size: 10px;
+    letter-spacing: 0.8px;
+}
+
+/* ---- Visualization Cards (compact) ---- */
+.card--viz {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px 20px;
+}
+.card--viz .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.card--viz .card-desc {
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+/* ---- Placeholder Card Polish ---- */
+.card--placeholder .card-desc {
+    color: var(--color-light);
+    font-style: italic;
+}
+
 /* ---- Responsive ---- */
+@media (max-width: 640px) {
+    .card--dashboard {
+        flex-direction: column;
+        border-left-width: 3px;
+    }
+    .card--dashboard .card__arrow {
+        display: none;
+    }
+}
 @media (max-width: 480px) {
     .hero h1 { font-size: 26px; }
+    .project-featured {
+        flex-direction: column;
+        gap: 16px;
+        border-left-width: 3px;
+    }
+    .project-featured__arrow {
+        display: none;
+    }
+    .project-featured__icon {
+        width: 40px;
+        height: 40px;
+    }
+    .project-featured__icon svg {
+        width: 22px;
+        height: 22px;
+    }
 }
