@@ -150,56 +150,71 @@
 
 /* ---- Contact Form ---- */
 .contact-form {
-    max-width: 560px;
+    max-width: 520px;
 }
-.form-group {
-    margin-bottom: 24px;
+.contact-form *,
+.contact-form *::before,
+.contact-form *::after {
+    box-sizing: border-box;
 }
-.form-group label {
+.contact-form .form-group {
+    margin: 0 0 28px 0;
+    padding: 0;
+}
+.contact-form .form-group label {
     display: block;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--color-text);
-    margin-bottom: 6px;
+    margin: 0 0 8px 0;
+    padding: 0;
 }
-.form-group input,
-.form-group textarea {
+.contact-form .form-group input[type="text"],
+.contact-form .form-group input[type="email"],
+.contact-form .form-group textarea {
+    display: block;
     width: 100%;
+    max-width: 100%;
     padding: 12px 14px;
+    margin: 0;
     font-size: 15px;
     font-family: var(--font-stack);
     color: var(--color-text);
     background: #ffffff;
     border: 1px solid var(--color-border);
-    border-radius: var(--radius);
+    border-radius: 6px;
     transition: border-color 0.2s, box-shadow 0.2s;
-    box-sizing: border-box;
+    -webkit-appearance: none;
+    appearance: none;
 }
-.form-group input:focus,
-.form-group textarea:focus {
+.contact-form .form-group input[type="text"]:focus,
+.contact-form .form-group input[type="email"]:focus,
+.contact-form .form-group textarea:focus {
     outline: none;
     border-color: var(--color-accent);
     box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.08);
 }
-.form-group textarea {
+.contact-form .form-group textarea {
     resize: vertical;
-    min-height: 120px;
+    min-height: 140px;
 }
-.btn-primary {
+.contact-form .btn-primary {
     display: inline-block;
     padding: 12px 32px;
+    margin: 4px 0 0 0;
     font-size: 14px;
     font-weight: 600;
     font-family: var(--font-stack);
     color: #ffffff;
     background: var(--color-accent);
     border: none;
-    border-radius: var(--radius);
+    border-radius: 6px;
     cursor: pointer;
     transition: background 0.15s;
-    margin-top: 8px;
+    -webkit-appearance: none;
+    appearance: none;
 }
-.btn-primary:hover { background: var(--color-accent-hover); }
+.contact-form .btn-primary:hover { background: var(--color-accent-hover); }
 
 /* ---- Success Message ---- */
 .success-message {
