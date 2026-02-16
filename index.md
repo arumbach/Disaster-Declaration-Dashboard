@@ -1,6 +1,6 @@
 ---
 layout: home
-title: Disaster Lab
+title: ANDREW RUMBACH, PHD | Disaster Lab
 ---
 
 <section class="hero">
