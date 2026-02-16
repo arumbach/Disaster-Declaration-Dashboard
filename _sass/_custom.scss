@@ -1,14 +1,13 @@
 /* ============================================
-   Disaster Lab — Shared Stylesheet
+   Disaster Lab — Custom Styles (extends Minima)
    ============================================ */
 
+/* ---- Design Tokens ---- */
 :root {
     --color-text:         #1a1a2e;
     --color-muted:        #6c757d;
     --color-light:        #9ca3af;
-    --color-bg:           #ffffff;
     --color-bg-subtle:    #f3f4f6;
-    --color-bg-hover:     #f8f9fa;
     --color-border:       #e5e7eb;
     --color-accent:       #003366;
     --color-accent-hover: #004488;
@@ -19,61 +18,8 @@
     --max-width-narrow:   680px;
 }
 
-/* ---- Reset ---- */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-/* ---- Base ---- */
-body {
-    font-family: var(--font-stack);
-    background: var(--color-bg);
-    color: var(--color-text);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-}
-
-a { color: var(--color-accent); text-decoration: none; }
-a:hover { color: var(--color-accent-hover); }
-
-/* ---- Site Header / Nav ---- */
-.site-header {
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-bg);
-}
-.header-inner {
-    max-width: 960px;
-    margin: 0 auto;
-    padding: 16px 24px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-}
-.site-name {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--color-text);
-    text-decoration: none;
-}
-.site-name:hover { color: var(--color-accent); }
-.site-nav {
-    display: flex;
-    gap: 24px;
-}
-.site-nav a {
-    font-size: 14px;
-    color: var(--color-muted);
-    text-decoration: none;
-    transition: color 0.15s;
-}
-.site-nav a:hover { color: var(--color-text); }
-.site-nav a.active {
-    color: var(--color-text);
-    font-weight: 600;
-}
-
 /* ---- Page Content Container ---- */
-.page-content {
+.page-content-custom {
     max-width: var(--max-width);
     margin: 0 auto;
     padding: 40px 24px;
@@ -82,34 +28,12 @@ a:hover { color: var(--color-accent-hover); }
     max-width: var(--max-width-narrow);
 }
 
-/* ---- Typography ---- */
-h1 {
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--color-text);
-    margin-bottom: 8px;
-}
-h2 {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--color-text);
-    margin-bottom: 8px;
-}
-h3 {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--color-text);
-    margin-bottom: 4px;
-}
+/* ---- Subtitle / Footnote ---- */
 .subtitle {
     font-size: 14px;
     color: var(--color-muted);
     line-height: 1.5;
     margin-bottom: 28px;
-}
-p {
-    line-height: 1.7;
-    margin-bottom: 16px;
 }
 .footnote {
     font-size: 12px;
@@ -240,7 +164,7 @@ p {
     font-size: 14px;
     font-family: var(--font-stack);
     color: var(--color-text);
-    background: var(--color-bg);
+    background: #ffffff;
     border: 1px solid var(--color-border);
     border-radius: var(--radius);
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -281,26 +205,7 @@ p {
     margin-bottom: 24px;
 }
 
-/* ---- Site Footer ---- */
-.site-footer {
-    margin-top: 48px;
-    padding: 20px 24px;
-    border-top: 1px solid var(--color-border);
-    text-align: center;
-    font-size: 12px;
-    color: var(--color-light);
-    line-height: 1.6;
-}
-.site-footer a {
-    color: var(--color-muted);
-    text-decoration: none;
-}
-.site-footer a:hover { color: var(--color-text); }
-
 /* ---- Responsive ---- */
 @media (max-width: 480px) {
     .hero h1 { font-size: 26px; }
-    .header-inner { padding: 12px 16px; }
-    .site-nav { gap: 16px; }
-    .page-content { padding: 28px 16px; }
 }

@@ -1,0 +1,10 @@
+title: Disaster Lab
+description: "Data-driven analysis of federal disaster response"
+url: "https://disasterlab.org"
+baseurl: ""
+theme: minima
+
+header_pages:
+  - about.md
+  - contact.html
+  - fema.html

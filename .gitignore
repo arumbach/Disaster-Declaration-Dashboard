@@ -6,6 +6,12 @@
 nul
 .claude/
 
+# Jekyll build artifacts
+_site/
+.sass-cache/
+.jekyll-cache/
+.jekyll-metadata
+
 # Keep these (override ignores)
 !fema_declarations_political.js
 !sba_fy22_state_aggregated.json
