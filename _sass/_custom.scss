@@ -153,39 +153,37 @@
     max-width: 560px;
 }
 .form-group {
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 .form-group label {
     display: block;
     font-size: 13px;
     font-weight: 600;
-    color: var(--color-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
+    color: var(--color-text);
+    margin-bottom: 6px;
 }
 .form-group input,
 .form-group textarea {
     width: 100%;
-    padding: 10px 0;
+    padding: 12px 14px;
     font-size: 15px;
     font-family: var(--font-stack);
     color: var(--color-text);
-    background: transparent;
-    border: none;
-    border-bottom: 1px solid var(--color-border);
-    border-radius: 0;
-    transition: border-color 0.2s;
+    background: #ffffff;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    transition: border-color 0.2s, box-shadow 0.2s;
     box-sizing: border-box;
 }
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
-    border-bottom-color: var(--color-accent);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(0, 51, 102, 0.08);
 }
 .form-group textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 120px;
 }
 .btn-primary {
     display: inline-block;
