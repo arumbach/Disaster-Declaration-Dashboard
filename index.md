@@ -10,4 +10,4 @@ He has published dozens of peer-reviewed studies on disaster and climate related
 
 Before joining the Urban Institute in 2023, Rumbach was a tenured professor of urban planning at Texas A&M University and before that the University of Colorado Denver. He earned a BA in political science from Reed College and a PhD and MRP in city and regional planning from Cornell University.
 
-To keep up with my latest research, visit my Substack [Place + Resilience](https://andrewrumbach.substack.com/).
+To keep up with my latest research, visit my Substack [Place + Resilience](https://andrewrumbach.substack.com/). Visit [Disaster Lab](/disasterlab.html) to see my latest disaster data visualizations and dashboards.
