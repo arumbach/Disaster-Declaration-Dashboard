@@ -4,7 +4,7 @@ layout: home
 
 <h2 style="font-size:24px; font-weight:700; margin-bottom:16px;">About Me</h2>
 
-<p style="font-size:1.125em;"><em>Researcher and educator exploring the science and policy of disasters and community resilience.</em></p>
+<p style="font-size:1.125em;"><em>Studying how disasters affect communities—and what policymakers and practitioners can do about it.</em></p>
 
 I am a Senior Fellow and the co-lead of the Climate and Communities program at the Urban Institute in Washington, DC. For the past 20 years I have studied the impacts of disasters and extreme events on people and communities, and what planners and policymakers can do to help build safer and more resilient communities. My research has several areas of emphasis including the impacts of disasters on affordable housing, the role of zoning and land-use policies in building community resilience, and the role of federal disaster policies and programs on hazard mitigation and long-term recovery.
 
