@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manufactured Housing as Share of Housing Stock</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            color: #1a1a2e;
+            padding: 40px 24px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .nav-bar {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 960px;
+            margin: 0 auto 24px;
+        }
+        .nav-bar a { font-size: 14px; text-decoration: none; }
+        .nav-bar a.back { color: #6c757d; }
+        .nav-bar a.home { color: #003366; font-weight: 600; }
+        h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #6c757d; margin-bottom: 24px; line-height: 1.5; }
+        .map-container { width: 100%; margin-bottom: 8px; }
+        .map-container svg { display: block; width: 100%; height: auto; }
+        .legend { margin-top: 4px; margin-bottom: 16px; }
+        .legend svg { display: block; }
+        .legend-label { font-size: 11px; fill: #6c757d; }
+        .footnote { font-size: 11px; color: #6c757d; line-height: 1.6; margin-top: 12px; }
+        .btn-download {
+            display: inline-block; margin-top: 16px; padding: 8px 16px;
+            background: #003366; color: white; border: none; border-radius: 4px;
+            font-size: 13px; cursor: pointer; text-decoration: none;
+        }
+        .btn-download:hover { background: #004488; }
+        .tooltip {
+            position: fixed;
+            pointer-events: none;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 13px;
+            line-height: 1.5;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            z-index: 1000;
+            max-width: 260px;
+        }
+        .tooltip .tt-name { font-weight: 700; margin-bottom: 4px; color: #1a1a2e; }
+        .tooltip .tt-row { color: #4a4a5a; font-size: 12px; }
+        .tooltip .tt-pct { font-size: 15px; font-weight: 700; color: #003366; }
+        .state-path { cursor: pointer; }
+        .state-path:hover { stroke: #1a1a2e; stroke-width: 1.5px; }
+    </style>
+    <!-- GoatCounter analytics -->
+    <script data-goatcounter="https://disasterlab.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+    <div class="nav-bar">
+        <a href="/manufactured-housing.html" class="back">&larr; Manufactured Housing</a>
+        <a href="/" class="home">Disaster Lab</a>
+    </div>
+    <h1>Manufactured Housing as Share of Housing Stock</h1>
+    <p class="subtitle">Percentage of housing units classified as mobile homes or manufactured housing, by state (2019&ndash;2023 ACS 5-Year Estimates)</p>
+    <div class="map-container" id="map-container"></div>
+    <div class="legend" id="legend"></div>
+    <div class="footnote">
+        Data: U.S. Census Bureau, American Community Survey 5-Year Estimates (2019&ndash;2023), Table B25024.
+    </div>
+    <button class="btn-download" onclick="downloadPNG()">Download as PNG</button>
+    <div class="tooltip" id="tooltip"></div>
+
+<script>
+const stateData = {
+    "01": {name:"Alabama", pct:12.55, mobile:290589, total:2316192},
+    "02": {name:"Alaska", pct:3.98, mobile:13052, total:327610},
+    "04": {name:"Arizona", pct:9.46, mobile:297155, total:3142443},
+    "05": {name:"Arkansas", pct:11.16, mobile:154260, total:1382664},
+    "06": {name:"California", pct:3.55, mobile:515402, total:14532683},
+    "08": {name:"Colorado", pct:3.62, mobile:92202, total:2545124},
+    "09": {name:"Connecticut", pct:0.71, mobile:10967, total:1536049},
+    "10": {name:"Delaware", pct:7.14, mobile:32685, total:457958},
+    "11": {name:"District of Columbia", pct:0.09, mobile:334, total:356101},
+    "12": {name:"Florida", pct:8.19, mobile:826019, total:10082356},
+    "13": {name:"Georgia", pct:8.05, mobile:360934, total:4483873},
+    "15": {name:"Hawaii", pct:0.31, mobile:1748, total:564905},
+    "16": {name:"Idaho", pct:7.27, mobile:56490, total:776683},
+    "17": {name:"Illinois", pct:2.30, mobile:125189, total:5443501},
+    "18": {name:"Indiana", pct:4.42, mobile:130411, total:2953344},
+    "19": {name:"Iowa", pct:3.23, mobile:46150, total:1427175},
+    "20": {name:"Kansas", pct:4.08, mobile:52489, total:1285221},
+    "21": {name:"Kentucky", pct:10.84, mobile:217876, total:2010655},
+    "22": {name:"Louisiana", pct:12.65, mobile:264927, total:2094002},
+    "23": {name:"Maine", pct:8.20, mobile:61231, total:746552},
+    "24": {name:"Maryland", pct:1.27, mobile:32426, total:2545532},
+    "25": {name:"Massachusetts", pct:0.78, mobile:23618, total:3014657},
+    "26": {name:"Michigan", pct:5.05, mobile:232450, total:4599683},
+    "27": {name:"Minnesota", pct:2.96, mobile:74626, total:2519538},
+    "28": {name:"Mississippi", pct:14.37, mobile:191536, total:1332811},
+    "29": {name:"Missouri", pct:5.33, mobile:149666, total:2809501},
+    "30": {name:"Montana", pct:9.48, mobile:49600, total:522939},
+    "31": {name:"Nebraska", pct:3.00, mobile:25633, total:855631},
+    "32": {name:"Nevada", pct:5.28, mobile:69076, total:1307338},
+    "33": {name:"New Hampshire", pct:5.25, mobile:33818, total:644253},
+    "34": {name:"New Jersey", pct:0.93, mobile:35303, total:3775842},
+    "35": {name:"New Mexico", pct:15.76, mobile:149635, total:949524},
+    "36": {name:"New York", pct:2.15, mobile:183392, total:8539536},
+    "37": {name:"North Carolina", pct:11.28, mobile:543050, total:4815195},
+    "38": {name:"North Dakota", pct:6.82, mobile:25563, total:374866},
+    "39": {name:"Ohio", pct:3.48, mobile:183383, total:5271573},
+    "40": {name:"Oklahoma", pct:8.43, mobile:148696, total:1763036},
+    "41": {name:"Oregon", pct:7.23, mobile:132930, total:1838631},
+    "42": {name:"Pennsylvania", pct:3.56, mobile:205602, total:5779663},
+    "44": {name:"Rhode Island", pct:0.89, mobile:4307, total:484615},
+    "45": {name:"South Carolina", pct:14.69, mobile:352784, total:2401638},
+    "46": {name:"South Dakota", pct:7.56, mobile:30425, total:402364},
+    "47": {name:"Tennessee", pct:8.30, mobile:256838, total:3095472},
+    "48": {name:"Texas", pct:6.54, mobile:777911, total:11890808},
+    "49": {name:"Utah", pct:2.85, mobile:34024, total:1193082},
+    "50": {name:"Vermont", pct:5.79, mobile:19533, total:337072},
+    "51": {name:"Virginia", pct:4.40, mobile:160945, total:3654784},
+    "53": {name:"Washington", pct:5.63, mobile:183749, total:3262667},
+    "54": {name:"West Virginia", pct:13.81, mobile:118691, total:859653},
+    "55": {name:"Wisconsin", pct:3.07, mobile:84443, total:2750750},
+    "56": {name:"Wyoming", pct:11.56, mobile:31796, total:275131}
+};
+
+const fmt = d3.format(",");
+const colorLow = "#e8eef5";
+const colorHigh = "#003366";
+const colorScale = d3.scaleSequential()
+    .domain([0, 16])
+    .interpolator(d3.interpolateRgb(colorLow, colorHigh));
+
+const tooltip = d3.select("#tooltip");
+
+const width = 900;
+const height = 580;
+
+const svg = d3.select("#map-container")
+    .append("svg")
+    .attr("viewBox", `0 0 ${width} ${height}`)
+    .attr("preserveAspectRatio", "xMidYMid meet");
+
+const projection = d3.geoAlbersUsa()
+    .fitSize([width, height], {type: "Sphere"});
+
+const path = d3.geoPath().projection(projection);
+
+d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json").then(us => {
+    const states = topojson.feature(us, us.objects.states);
+
+    // Fit projection to the actual geometry
+    projection.fitSize([width - 40, height - 40], states);
+    projection.translate([width / 2, height / 2]);
+
+    svg.selectAll(".state-path")
+        .data(states.features)
+        .join("path")
+        .attr("class", "state-path")
+        .attr("d", path)
+        .attr("fill", d => {
+            const fips = String(d.id).padStart(2, "0");
+            const s = stateData[fips];
+            return s ? colorScale(s.pct) : "#e0e0e0";
+        })
+        .attr("stroke", "#ffffff")
+        .attr("stroke-width", 0.5)
+        .on("mousemove", (event, d) => {
+            const fips = String(d.id).padStart(2, "0");
+            const s = stateData[fips];
+            if (!s) return;
+
+            tooltip.style("opacity", 1)
+                .html(`
+                    <div class="tt-name">${s.name}</div>
+                    <div class="tt-pct">${s.pct}%</div>
+                    <div class="tt-row">Mobile/manufactured units: ${fmt(s.mobile)}</div>
+                    <div class="tt-row">Total housing units: ${fmt(s.total)}</div>
+                `);
+
+            const ttNode = tooltip.node();
+            const ttW = ttNode.offsetWidth;
+            const ttH = ttNode.offsetHeight;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+
+            let left = event.clientX + 16;
+            let top = event.clientY - 10;
+
+            if (left + ttW > vw - 8) left = event.clientX - ttW - 16;
+            if (top + ttH > vh - 8) top = vh - ttH - 8;
+            if (top < 8) top = 8;
+
+            tooltip.style("left", left + "px")
+                   .style("top", top + "px");
+        })
+        .on("mouseleave", () => {
+            tooltip.style("opacity", 0);
+        });
+
+    buildLegend();
+});
+
+function buildLegend() {
+    const legendW = Math.min(360, width);
+    const barH = 12;
+    const marginLeft = 0;
+    const marginTop = 4;
+
+    const legendSvg = d3.select("#legend")
+        .append("svg")
+        .attr("width", legendW)
+        .attr("height", 44);
+
+    const defs = legendSvg.append("defs");
+    const grad = defs.append("linearGradient")
+        .attr("id", "legend-gradient")
+        .attr("x1", "0%").attr("y1", "0%")
+        .attr("x2", "100%").attr("y2", "0%");
+
+    const nStops = 10;
+    for (let i = 0; i <= nStops; i++) {
+        const t = i / nStops;
+        grad.append("stop")
+            .attr("offset", `${t * 100}%`)
+            .attr("stop-color", colorScale(t * 16));
+    }
+
+    legendSvg.append("rect")
+        .attr("x", marginLeft)
+        .attr("y", marginTop)
+        .attr("width", legendW)
+        .attr("height", barH)
+        .attr("rx", 2)
+        .style("fill", "url(#legend-gradient)");
+
+    const tickValues = [0, 4, 8, 12, 16];
+    const xScale = d3.scaleLinear().domain([0, 16]).range([marginLeft, legendW]);
+
+    tickValues.forEach(v => {
+        legendSvg.append("text")
+            .attr("class", "legend-label")
+            .attr("x", xScale(v))
+            .attr("y", marginTop + barH + 16)
+            .attr("text-anchor", v === 0 ? "start" : v === 16 ? "end" : "middle")
+            .text(v + "%");
+    });
+}
+
+function downloadPNG() {
+    const svgEl = document.querySelector("#map-container svg");
+    const serializer = new XMLSerializer();
+    let svgStr = serializer.serializeToString(svgEl);
+
+    // Ensure xmlns is present (XMLSerializer usually adds it, but be safe)
+    if (!svgStr.includes('xmlns="http://www.w3.org/2000/svg"')) {
+        svgStr = svgStr.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    const canvas = document.createElement("canvas");
+    const scale = 2;
+    canvas.width = width * scale;
+    canvas.height = (height + 80) * scale;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const img = new Image();
+    const blob = new Blob([svgStr], {type: "image/svg+xml;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+
+    img.onload = () => {
+        // Draw title at top
+        ctx.fillStyle = "#1a1a2e";
+        ctx.font = `bold ${18 * scale}px Aptos, Segoe UI, Roboto, sans-serif`;
+        ctx.fillText("Manufactured Housing as Share of Housing Stock", 20 * scale, 28 * scale);
+
+        // Draw subtitle
+        ctx.fillStyle = "#6c757d";
+        ctx.font = `${11 * scale}px Aptos, Segoe UI, Roboto, sans-serif`;
+        ctx.fillText("Percentage of housing units classified as mobile homes or manufactured housing, by state (2019\u20132023 ACS)", 20 * scale, 44 * scale);
+
+        // Draw map below title area
+        ctx.drawImage(img, 0, 60 * scale, width * scale, height * scale);
+        URL.revokeObjectURL(url);
+
+        // Draw source at bottom
+        ctx.fillStyle = "#6c757d";
+        ctx.font = `${9 * scale}px Aptos, Segoe UI, Roboto, sans-serif`;
+        ctx.fillText("Data: U.S. Census Bureau, ACS 5-Year Estimates (2019\u20132023), Table B25024", 20 * scale, (height + 70) * scale);
+
+        const link = document.createElement("a");
+        link.download = "manufactured_housing_state_map.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+    };
+
+    img.onerror = () => {
+        URL.revokeObjectURL(url);
+        alert("PNG export failed. Try right-clicking the map to save as image.");
+    };
+
+    img.src = url;
+}
+</script>
+</body>
+</html>

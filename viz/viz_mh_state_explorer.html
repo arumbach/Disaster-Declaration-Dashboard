@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manufactured Housing Shipments by State</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Aptos', 'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff; color: #1a1a2e;
+            padding: 40px 24px; max-width: 900px; margin: 0 auto;
+        }
+        .nav-bar {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 960px;
+            margin: 0 auto 24px;
+        }
+        .nav-bar a { font-size: 14px; text-decoration: none; }
+        .nav-bar a.back { color: #6c757d; }
+        .nav-bar a.home { color: #003366; font-weight: 600; }
+        h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+        .subtitle { font-size: 13px; color: #6c757d; margin-bottom: 24px; line-height: 1.5; }
+
+        /* Controls */
+        .controls { margin-bottom: 20px; }
+        .controls-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+        .pill-btn {
+            display: inline-block;
+            padding: 5px 14px;
+            background: #f1f5f9;
+            color: #1a1a2e;
+            border: 1px solid #e2e8f0;
+            border-radius: 20px;
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+            white-space: nowrap;
+        }
+        .pill-btn:hover { background: #e2e8f0; border-color: #cbd5e1; }
+        .pill-btn.active { background: #003366; color: #ffffff; border-color: #003366; }
+        .pill-btn.clear { background: #fff; border-color: #dc2626; color: #dc2626; }
+        .pill-btn.clear:hover { background: #fef2f2; }
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+        .toggle-row label {
+            font-size: 13px;
+            color: #4a4a5a;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .toggle-row input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #003366;
+            cursor: pointer;
+        }
+
+        /* Map selector */
+        .map-selector {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fafbfc;
+            padding: 12px;
+            margin-bottom: 20px;
+        }
+        .map-selector svg {
+            display: block;
+            width: 100%;
+            height: auto;
+            cursor: pointer;
+        }
+        .map-selector path.state {
+            stroke: #ffffff;
+            stroke-width: 0.5;
+            transition: opacity 0.15s;
+        }
+        .map-selector path.state:hover {
+            opacity: 0.8;
+        }
+        .map-tooltip {
+            position: fixed;
+            pointer-events: none;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 4px 10px;
+            font-size: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 1000;
+            white-space: nowrap;
+        }
+        .selected-count {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 8px;
+            text-align: center;
+        }
+        .limit-msg {
+            font-size: 12px;
+            color: #dc2626;
+            margin-top: 4px;
+            text-align: center;
+            display: none;
+        }
+
+        /* Chart */
+        .chart-wrap { position: relative; height: 450px; margin-bottom: 16px; }
+        .no-selection-msg {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #94a3b8;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Stats table */
+        .stats-section { margin-top: 20px; margin-bottom: 16px; }
+        .stats-section h2 {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #1a1a2e;
+        }
+        .stats-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .stats-table th {
+            text-align: left;
+            padding: 8px 12px;
+            background: #f8fafc;
+            border-bottom: 2px solid #e2e8f0;
+            color: #4a4a5a;
+            font-weight: 600;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .stats-table td {
+            padding: 7px 12px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .stats-table tr:nth-child(even) td { background: #fafbfc; }
+        .stats-table .change-neg { color: #dc2626; font-weight: 600; }
+        .stats-table .change-pos { color: #059669; font-weight: 600; }
+        .stats-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+        /* Footnote & download */
+        .footnote { font-size: 11px; color: #6c757d; line-height: 1.6; margin-top: 12px; }
+        .btn-download {
+            display: inline-block; margin-top: 16px; padding: 8px 16px;
+            background: #003366; color: white; border: none; border-radius: 4px;
+            font-size: 13px; cursor: pointer; font-family: inherit;
+        }
+        .btn-download:hover { background: #004488; }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            body { padding: 20px 12px; }
+            .nav-bar { padding: 12px 12px; }
+            .chart-wrap { height: 350px; }
+            .stats-table { font-size: 12px; }
+            .stats-table th, .stats-table td { padding: 6px 8px; }
+        }
+    </style>
+    <!-- GoatCounter analytics -->
+    <script data-goatcounter="https://disasterlab.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+    <div class="nav-bar">
+        <a href="/manufactured-housing.html" class="back">&larr; Manufactured Housing</a>
+        <a href="/" class="home">Disaster Lab</a>
+    </div>
+
+    <h1>Manufactured Housing Shipments by State</h1>
+    <p class="subtitle">Annual shipments of new manufactured homes to each state, 1994&ndash;2024</p>
+
+    <div class="controls">
+        <div class="controls-row">
+            <button class="pill-btn" id="btn-top5" onclick="applyPreset('top5')">Top 5</button>
+            <button class="pill-btn" id="btn-northeast" onclick="applyPreset('northeast')">Northeast</button>
+            <button class="pill-btn" id="btn-southeast" onclick="applyPreset('southeast')">Southeast</button>
+            <button class="pill-btn" id="btn-midwest" onclick="applyPreset('midwest')">Midwest</button>
+            <button class="pill-btn" id="btn-southwest" onclick="applyPreset('southwest')">Southwest</button>
+            <button class="pill-btn" id="btn-west" onclick="applyPreset('west')">West</button>
+            <button class="pill-btn clear" onclick="clearAll()">Clear all</button>
+        </div>
+        <div class="toggle-row">
+            <label>
+                <input type="checkbox" id="nationalToggle" checked onchange="updateChart()">
+                Show national total
+            </label>
+            <span style="margin-left:16px; font-size:13px; color:#4a4a5a;">Time period:</span>
+            <select id="timePeriod" onchange="updateChart()" style="font-size:13px; font-family:inherit; padding:4px 8px; border:1px solid #e2e8f0; border-radius:4px; color:#1a1a2e; background:#fff; cursor:pointer;">
+                <option value="all">All years (1994–2024)</option>
+                <option value="decade">Last decade (2015–2024)</option>
+                <option value="3yr">Last 3 years (2022–2024)</option>
+                <option value="latest">Most recent year (2024)</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="map-selector">
+        <div id="selectorMap"></div>
+        <div class="selected-count" id="selectedCount">Click states on the map to compare (max 12)</div>
+        <div class="limit-msg" id="limitMsg">Maximum of 12 states can be displayed at once.</div>
+    </div>
+    <div class="map-tooltip" id="mapTooltip"></div>
+
+    <div class="chart-wrap">
+        <canvas id="chart"></canvas>
+        <div class="no-selection-msg" id="noSelectionMsg">Select one or more states above to view shipment trends.<br>Or click a preset button to get started.</div>
+    </div>
+
+    <div class="stats-section" id="statsSection" style="display:none;">
+        <h2>Summary Statistics</h2>
+        <table class="stats-table">
+            <thead>
+                <tr>
+                    <th>State</th>
+                    <th class="num">Peak Year</th>
+                    <th class="num">Peak Shipments</th>
+                    <th class="num" id="lastYearHeader">2024 Shipments</th>
+                    <th class="num">Change from Peak</th>
+                </tr>
+            </thead>
+            <tbody id="statsBody"></tbody>
+        </table>
+    </div>
+
+    <div class="footnote">
+        Data: U.S. Census Bureau, Manufactured Housing Survey, via Institute for Building Technology &amp; Safety (IBTS). Annual shipments to states, 1994&ndash;2024.
+    </div>
+    <button class="btn-download" onclick="downloadPNG()">Download as PNG</button>
+
+<script>
+Chart.defaults.font.family = "'Aptos', 'Segoe UI', Roboto, sans-serif";
+
+const MAX_STATES = 12;
+
+const years = [1994,1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
+
+const stateData = {
+"Alabama":[15263,17239,19869,17323,19519,18065,10137,6165,4444,3210,3648,5400,4185,3672,3947,2282,1790,2501,2175,2349,2444,2822,3612,6046,4807,4546,4530,5153,7312,5497,5744],
+"Alaska":[88,138,99,97,76,49,54,38,33,39,24,132,51,75,33,36,70,56,32,62,42,34,42,59,51,89,64,13,32,13,25],
+"Arizona":[6258,6999,8095,8545,8611,8705,6664,5859,5419,4454,4570,6056,5518,3281,2139,922,815,844,860,1015,1169,1471,1690,1721,1967,2402,2234,2421,2763,2213,2192],
+"Arkansas":[5653,5795,6319,5968,5729,5449,3821,2735,2136,1828,1777,2020,1741,1479,1371,866,712,770,740,785,851,1096,1190,1478,1271,1212,1205,1385,1671,1458,1643],
+"California":[5925,4935,4927,5168,5285,5216,4709,3969,3258,2601,2561,2689,2478,1830,1372,900,656,612,635,565,587,639,798,963,871,1036,1247,1422,1595,1251,1310],
+"Colorado":[2576,2498,2668,2783,2804,2520,1795,1365,1075,961,851,824,744,595,503,415,306,329,313,419,490,560,653,801,741,749,749,769,885,756,826],
+"Connecticut":[195,193,198,192,178,162,113,115,92,59,45,50,60,44,41,41,36,24,15,22,17,28,22,30,16,27,19,22,22,22,25],
+"Delaware":[620,729,720,686,671,530,356,276,233,210,209,257,205,181,152,136,112,125,97,116,131,176,195,260,213,215,180,194,232,216,269],
+"District of Columbia":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+"Florida":[21023,24159,27893,30074,32893,28543,18505,15106,13129,9700,10879,18271,15064,9070,5449,2637,1826,2013,1757,1810,2099,2557,3239,4449,4000,3754,4145,5206,5816,4741,5290],
+"Georgia":[11792,12977,14792,13918,16108,14710,9197,6312,5165,3988,4046,4892,3760,2956,2453,1283,996,1217,1144,1362,1458,1823,2326,3200,2841,2789,2822,3152,3848,3068,3359],
+"Hawaii":[42,36,32,31,42,40,42,44,29,25,19,30,19,23,26,28,25,24,26,20,21,20,13,18,17,22,23,15,22,3,13],
+"Idaho":[1607,1647,1800,1737,1688,1601,1159,904,766,683,698,810,675,480,364,233,171,161,157,196,247,291,371,468,498,509,537,609,628,507,548],
+"Illinois":[3547,3736,3808,3625,3564,3184,2212,1620,1278,1021,924,1039,826,674,623,378,270,340,306,325,358,392,427,534,456,418,348,362,422,362,414],
+"Indiana":[6485,6632,6895,6556,6533,5802,3987,2888,2387,1899,1932,2223,1715,1365,1217,690,523,576,496,501,512,631,708,954,766,793,808,1006,1143,855,1035],
+"Iowa":[1589,1592,1506,1420,1374,1233,946,744,589,492,460,490,415,325,298,201,130,173,133,153,161,176,186,234,217,239,224,285,303,272,289],
+"Kansas":[2077,2182,2320,2274,2143,1887,1318,1044,804,665,635,725,581,467,400,258,176,201,175,214,235,282,277,354,293,284,294,363,387,329,375],
+"Kentucky":[7924,8773,8854,7867,7637,6703,4548,3278,2667,2259,2303,2795,2093,1668,1598,1017,805,909,808,868,896,1065,1304,1665,1334,1269,1257,1455,1811,1393,1568],
+"Louisiana":[10803,10838,12087,11133,12345,11362,6809,4760,3762,3008,3243,8197,6063,3752,3389,1878,1382,2148,1649,2027,2121,2347,2723,3561,2836,2583,2547,3056,3710,2888,3230],
+"Maine":[1008,994,926,845,775,659,488,396,290,221,222,235,177,155,142,100,82,96,85,78,77,93,110,149,156,151,140,161,163,128,159],
+"Maryland":[678,730,647,629,621,542,398,357,286,219,209,222,180,145,127,104,80,79,76,90,104,112,126,177,142,120,135,145,192,154,178],
+"Massachusetts":[278,282,281,288,277,237,175,130,114,99,72,75,63,53,55,45,36,38,31,29,26,33,27,29,30,32,29,35,39,36,29],
+"Michigan":[5834,6048,6012,5819,5668,5153,3614,2599,2007,1568,1555,1568,1108,832,650,383,277,308,294,337,375,430,496,651,622,614,672,753,823,680,813],
+"Minnesota":[2134,2211,2186,2116,2071,1815,1253,943,754,616,557,546,423,346,302,213,140,165,147,163,174,199,208,265,265,283,302,373,392,331,368],
+"Mississippi":[8011,8591,9291,8493,8730,7960,4881,3487,2740,2169,2289,3773,3023,2249,2167,1296,1034,1266,1035,1112,1111,1258,1444,1971,1561,1365,1419,1522,2189,1628,1892],
+"Missouri":[4729,4922,5226,4886,4750,4284,2986,2073,1632,1380,1313,1466,1099,930,858,534,401,464,413,453,484,558,680,893,717,693,645,749,917,721,833],
+"Montana":[1078,1086,1115,1131,1067,964,697,551,428,377,319,365,302,254,215,131,98,108,101,100,114,142,183,229,199,216,208,305,308,218,236],
+"Nebraska":[921,934,988,905,900,784,558,415,315,241,217,262,224,207,164,131,100,99,93,83,92,106,96,150,120,117,127,145,169,131,140],
+"Nevada":[2285,2534,2885,3003,3141,3091,2365,1968,1530,1274,1218,1282,955,613,391,178,117,101,97,113,120,148,162,227,191,233,219,282,360,262,269],
+"New Hampshire":[474,463,486,428,444,371,260,205,161,119,109,108,78,66,59,41,31,35,22,24,23,27,28,52,54,55,54,55,64,50,45],
+"New Jersey":[350,410,391,369,355,325,230,187,157,128,106,115,88,72,57,38,27,32,22,26,21,33,34,48,33,32,32,52,43,38,40],
+"New Mexico":[4424,4707,4827,4517,4321,3773,2488,1742,1290,1113,1134,1304,1049,883,697,361,286,378,332,335,371,420,474,596,513,539,536,561,638,530,574],
+"New York":[2830,2931,2764,2670,2618,2343,1753,1373,1056,850,762,780,591,463,353,230,166,183,166,172,175,199,220,310,279,311,283,333,381,281,331],
+"North Carolina":[22001,24009,27252,25019,27432,24499,15428,10703,8505,6697,7268,9413,7505,5620,4860,2755,2026,2651,2407,2690,2879,3411,4327,5977,5032,4825,4879,5593,7068,5536,6254],
+"North Dakota":[362,404,409,439,430,353,283,234,193,158,130,149,137,116,105,82,78,105,120,201,301,333,321,273,226,214,161,187,196,151,159],
+"Ohio":[4447,4622,4751,4483,4419,3929,2680,1928,1538,1201,1123,1266,925,732,609,368,255,283,258,270,307,336,396,530,459,460,420,520,598,460,555],
+"Oklahoma":[4399,4671,4844,4439,4401,3996,2644,1911,1463,1194,1178,1342,1113,891,808,515,380,443,392,442,461,560,676,849,736,689,678,753,960,730,834],
+"Oregon":[2709,2818,3056,3085,3004,2741,1979,1575,1254,1048,973,1014,840,665,450,263,198,194,190,208,256,311,384,453,404,434,437,520,592,442,488],
+"Pennsylvania":[5321,5540,5497,5191,5014,4458,3069,2283,1761,1427,1340,1441,1035,810,667,418,293,326,282,291,287,350,397,582,476,474,456,504,560,466,475],
+"Rhode Island":[40,55,51,37,36,33,25,21,12,10,10,10,8,7,4,2,2,1,3,2,3,3,2,4,5,3,4,3,1,6,5],
+"South Carolina":[11014,12139,13474,12765,13936,12529,7768,5468,4294,3444,3605,4756,3709,2826,2569,1558,1179,1482,1301,1404,1501,1791,2274,3278,2625,2438,2596,2853,3778,2966,3237],
+"South Dakota":[634,673,701,716,687,578,421,303,259,202,210,217,178,160,149,108,72,88,79,97,98,130,141,176,144,142,157,204,233,183,196],
+"Tennessee":[10316,11200,12006,10929,11195,10084,6425,4433,3484,2878,2958,3609,2756,2219,2041,1204,922,1097,1022,1107,1169,1437,1758,2374,1976,1848,1841,2126,2676,2051,2381],
+"Texas":[27723,30363,32759,29839,31069,28483,18207,14223,11267,9419,9667,14234,11975,9281,8395,5162,3835,4601,4112,4579,5101,5847,6838,8804,7626,7327,7468,8424,10329,7975,8752],
+"Utah":[1271,1320,1399,1397,1455,1345,995,744,601,524,496,554,449,343,255,155,107,117,88,97,115,145,181,235,247,278,298,325,377,286,298],
+"Vermont":[261,270,268,266,241,215,146,117,78,72,64,69,55,41,30,18,14,17,20,24,23,21,25,32,29,27,30,38,36,29,31],
+"Virginia":[5019,5293,5479,5226,5223,4773,3226,2460,1934,1574,1645,1874,1374,1034,856,510,353,469,406,436,463,559,700,936,747,676,620,715,915,698,768],
+"Washington":[3768,3905,4046,3976,3974,3555,2682,2100,1616,1341,1237,1322,1065,838,619,400,303,333,305,343,398,471,585,726,639,620,648,748,847,617,709],
+"West Virginia":[3158,3476,3472,3109,2968,2630,1798,1312,988,786,762,863,629,497,437,282,224,244,204,215,226,257,303,393,322,274,251,297,336,241,279],
+"Wisconsin":[2478,2590,2502,2449,2380,2069,1479,1058,836,690,676,680,505,392,327,208,139,165,130,140,148,173,199,244,222,226,247,312,330,284,310],
+"Wyoming":[873,857,878,888,841,776,560,451,364,313,271,336,297,239,195,112,81,84,73,89,86,108,137,170,147,161,173,196,250,182,186]
+};
+
+const nationalTotal = [303903,338056,363345,336754,373143,343033,250545,193105,155279,130818,130765,146811,117385,95741,81886,49784,50022,51618,54885,60210,64316,70519,81136,92870,96639,94580,94390,105772,112001,89169,103314];
+
+const palette = ['#003366','#dc2626','#059669','#d97706','#7c3aed','#db2777','#0891b2','#65a30d','#ea580c','#6366f1'];
+
+const presets = {
+    top5: ['Texas','North Carolina','Florida','Alabama','Louisiana'],
+    northeast: ['Connecticut','Delaware','Maine','Maryland','Massachusetts','New Hampshire','New Jersey','New York','Pennsylvania','Rhode Island','Vermont'],
+    southeast: ['Alabama','Florida','Georgia','Kentucky','Louisiana','Mississippi','North Carolina','South Carolina','Tennessee','Virginia','West Virginia'],
+    midwest: ['Illinois','Indiana','Iowa','Kansas','Michigan','Minnesota','Missouri','Nebraska','North Dakota','Ohio','South Dakota','Wisconsin'],
+    southwest: ['Arizona','Arkansas','New Mexico','Oklahoma','Texas'],
+    west: ['Alaska','California','Colorado','Hawaii','Idaho','Montana','Nevada','Oregon','Utah','Washington','Wyoming']
+};
+
+const stateNames = Object.keys(stateData).sort();
+let selectedStates = [];
+let chart = null;
+
+const fipsToState = {
+    "01":"Alabama","02":"Alaska","04":"Arizona","05":"Arkansas","06":"California",
+    "08":"Colorado","09":"Connecticut","10":"Delaware","11":"District of Columbia",
+    "12":"Florida","13":"Georgia","15":"Hawaii","16":"Idaho","17":"Illinois",
+    "18":"Indiana","19":"Iowa","20":"Kansas","21":"Kentucky","22":"Louisiana",
+    "23":"Maine","24":"Maryland","25":"Massachusetts","26":"Michigan","27":"Minnesota",
+    "28":"Mississippi","29":"Missouri","30":"Montana","31":"Nebraska","32":"Nevada",
+    "33":"New Hampshire","34":"New Jersey","35":"New Mexico","36":"New York",
+    "37":"North Carolina","38":"North Dakota","39":"Ohio","40":"Oklahoma",
+    "41":"Oregon","42":"Pennsylvania","44":"Rhode Island","45":"South Carolina",
+    "46":"South Dakota","47":"Tennessee","48":"Texas","49":"Utah","50":"Vermont",
+    "51":"Virginia","53":"Washington","54":"West Virginia","55":"Wisconsin","56":"Wyoming"
+};
+
+function buildSelectorMap() {
+    const container = document.getElementById('selectorMap');
+    const width = 975;
+    const height = 610;
+
+    const svg = d3.select(container)
+        .append('svg')
+        .attr('viewBox', `0 0 ${width} ${height}`)
+        .attr('preserveAspectRatio', 'xMidYMid meet');
+
+    const path = d3.geoPath();
+    const tooltip = document.getElementById('mapTooltip');
+
+    d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json').then(us => {
+        const states = topojson.feature(us, us.objects.states).features;
+
+        svg.selectAll('path.state')
+            .data(states)
+            .join('path')
+            .attr('class', 'state')
+            .attr('d', path)
+            .attr('fill', '#e2e8f0')
+            .attr('data-fips', d => String(d.id).padStart(2, '0'))
+            .on('click', function(event, d) {
+                const fips = String(d.id).padStart(2, '0');
+                const name = fipsToState[fips];
+                if (!name || name === 'District of Columbia') return;
+
+                if (selectedStates.includes(name)) {
+                    // Deselect
+                    selectedStates = selectedStates.filter(s => s !== name);
+                } else {
+                    // Select (check limit)
+                    if (selectedStates.length >= MAX_STATES) {
+                        document.getElementById('limitMsg').style.display = 'block';
+                        setTimeout(() => document.getElementById('limitMsg').style.display = 'none', 3000);
+                        return;
+                    }
+                    selectedStates.push(name);
+                }
+                updateMapColors();
+                updateChart();
+            })
+            .on('mousemove', function(event, d) {
+                const fips = String(d.id).padStart(2, '0');
+                const name = fipsToState[fips];
+                if (!name) return;
+                tooltip.textContent = name;
+                tooltip.style.opacity = '1';
+                tooltip.style.left = (event.clientX + 12) + 'px';
+                tooltip.style.top = (event.clientY - 28) + 'px';
+            })
+            .on('mouseleave', function() {
+                tooltip.style.opacity = '0';
+            });
+    });
+}
+
+function updateMapColors() {
+    d3.selectAll('#selectorMap path.state').each(function() {
+        const fips = d3.select(this).attr('data-fips');
+        const name = fipsToState[fips];
+        const idx = selectedStates.indexOf(name);
+        if (idx >= 0) {
+            d3.select(this).attr('fill', palette[idx % palette.length]);
+        } else {
+            d3.select(this).attr('fill', '#e2e8f0');
+        }
+    });
+
+    const count = selectedStates.length;
+    document.getElementById('selectedCount').textContent =
+        count === 0 ? 'Click states on the map to compare (max 12)' :
+        count + ' of ' + MAX_STATES + ' states selected';
+}
+
+function applyPreset(key) {
+    selectedStates = [...presets[key]];
+    updateMapColors();
+    updateChart();
+}
+
+function clearAll() {
+    selectedStates = [];
+    updateMapColors();
+    updateChart();
+}
+
+function getTimeFilter() {
+    const period = document.getElementById('timePeriod').value;
+    let startYear;
+    switch (period) {
+        case 'decade': startYear = 2015; break;
+        case '3yr': startYear = 2022; break;
+        case 'latest': startYear = 2024; break;
+        default: startYear = 1994;
+    }
+    return years.map((yr, idx) => ({ yr, idx, include: yr >= startYear }));
+}
+
+function updateChart() {
+    const showNational = document.getElementById('nationalToggle').checked;
+    const hasStates = selectedStates.length > 0;
+    const msgEl = document.getElementById('noSelectionMsg');
+    const statsSection = document.getElementById('statsSection');
+    const timeFilter = getTimeFilter();
+    const filteredEntries = timeFilter.filter(e => e.include);
+
+    msgEl.style.display = (!hasStates && !showNational) ? 'block' : 'none';
+
+    const datasets = [];
+
+    // State datasets
+    selectedStates.forEach((name, i) => {
+        const color = palette[i % palette.length];
+        datasets.push({
+            label: name,
+            data: filteredEntries.map(e => ({ x: e.yr + '-07-01', y: stateData[name][e.idx] })),
+            borderColor: color,
+            backgroundColor: color,
+            borderWidth: 2,
+            pointRadius: filteredEntries.length <= 5 ? 5 : 3,
+            pointHoverRadius: filteredEntries.length <= 5 ? 7 : 5,
+            pointBackgroundColor: color,
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1,
+            pointHoverBorderWidth: 2,
+            tension: 0.15,
+            fill: false,
+            yAxisID: 'y'
+        });
+    });
+
+    // National total dataset
+    if (showNational) {
+        datasets.push({
+            label: 'National Total',
+            data: filteredEntries.map(e => ({ x: e.yr + '-07-01', y: nationalTotal[e.idx] })),
+            borderColor: '#9ca3af',
+            backgroundColor: '#9ca3af',
+            borderWidth: 2,
+            borderDash: [8, 4],
+            pointRadius: filteredEntries.length <= 5 ? 4 : 2,
+            pointHoverRadius: filteredEntries.length <= 5 ? 6 : 4,
+            pointBackgroundColor: '#9ca3af',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1,
+            tension: 0.15,
+            fill: false,
+            yAxisID: 'y2'
+        });
+    }
+
+    if (chart) {
+        chart.data.datasets = datasets;
+        // Show/hide secondary axis
+        chart.options.scales.y2.display = showNational;
+        chart.update();
+    }
+
+    // Update stats table
+    if (hasStates) {
+        statsSection.style.display = 'block';
+        buildStatsTable();
+    } else {
+        statsSection.style.display = 'none';
+    }
+}
+
+function buildStatsTable() {
+    const tbody = document.getElementById('statsBody');
+    tbody.innerHTML = '';
+    const timeFilter = getTimeFilter();
+    const filteredEntries = timeFilter.filter(e => e.include);
+    const lastEntry = filteredEntries[filteredEntries.length - 1];
+    document.getElementById('lastYearHeader').textContent = lastEntry.yr + ' Shipments';
+
+    const rows = selectedStates.map(name => {
+        const vals = stateData[name];
+        let peakVal = 0, peakIdx = 0;
+        filteredEntries.forEach(e => {
+            if (vals[e.idx] > peakVal) { peakVal = vals[e.idx]; peakIdx = e.idx; }
+        });
+        const valLast = vals[lastEntry.idx];
+        const change = peakVal > 0 ? ((valLast - peakVal) / peakVal * 100) : 0;
+        return { name, peakYear: years[peakIdx], peakVal, valLast, lastYear: lastEntry.yr, change };
+    });
+
+    // Sort by latest year shipments descending
+    rows.sort((a, b) => b.valLast - a.valLast);
+
+    rows.forEach(r => {
+        const tr = document.createElement('tr');
+        const changeClass = r.change >= 0 ? 'change-pos' : 'change-neg';
+        const changeStr = (r.change >= 0 ? '+' : '') + r.change.toFixed(1) + '%';
+        tr.innerHTML = `
+            <td>${r.name}</td>
+            <td class="num">${r.peakYear}</td>
+            <td class="num">${r.peakVal.toLocaleString()}</td>
+            <td class="num">${r.valLast.toLocaleString()}</td>
+            <td class="num ${changeClass}">${changeStr}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function initChart() {
+    const ctx = document.getElementById('chart').getContext('2d');
+    chart = new Chart(ctx, {
+        type: 'line',
+        data: { datasets: [] },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        padding: 16,
+                        font: { size: 12 },
+                        filter: function(item) {
+                            return true;
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#ffffff',
+                    titleColor: '#1a1a2e',
+                    bodyColor: '#1a1a2e',
+                    borderColor: '#e5e7eb',
+                    borderWidth: 1,
+                    titleFont: { size: 13, weight: '600' },
+                    bodyFont: { size: 12 },
+                    padding: 12,
+                    boxPadding: 4,
+                    usePointStyle: true,
+                    callbacks: {
+                        title: function(items) {
+                            if (items.length === 0) return '';
+                            const d = new Date(items[0].parsed.x);
+                            return d.getUTCFullYear().toString();
+                        },
+                        label: function(item) {
+                            return ' ' + item.dataset.label + ': ' + item.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'year',
+                        displayFormats: { year: 'yyyy' },
+                        tooltipFormat: 'yyyy'
+                    },
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 11 },
+                        maxRotation: 0
+                    }
+                },
+                y: {
+                    type: 'linear',
+                    position: 'left',
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'State shipments',
+                        font: { size: 12, weight: '600' },
+                        color: '#4a4a5a'
+                    },
+                    grid: { color: '#f0f0f0' },
+                    ticks: {
+                        font: { size: 11 },
+                        callback: function(val) { return val.toLocaleString(); }
+                    }
+                },
+                y2: {
+                    type: 'linear',
+                    position: 'right',
+                    beginAtZero: true,
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'National total',
+                        font: { size: 12, weight: '600' },
+                        color: '#9ca3af'
+                    },
+                    grid: { drawOnChartArea: false },
+                    ticks: {
+                        font: { size: 11 },
+                        color: '#9ca3af',
+                        callback: function(val) { return val.toLocaleString(); }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function downloadPNG() {
+    if (!chart) return;
+    const link = document.createElement('a');
+    link.download = 'mh_state_shipments.png';
+    link.href = chart.toBase64Image('image/png', 1);
+    link.click();
+}
+
+// Initialize
+buildSelectorMap();
+initChart();
+updateChart();
+</script>
+</body>
+</html>
