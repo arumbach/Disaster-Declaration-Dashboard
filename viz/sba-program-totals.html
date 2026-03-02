@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federal Disaster Program Spending — FY2019–2022</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.8);
+            --bg-card-hover: rgba(30, 41, 59, 0.9);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-glow: rgba(99, 102, 241, 0.3);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #6366f1;
+            --accent-cyan: #22d3ee;
+            --accent-green: #10b981;
+            --accent-rose: #f43f5e;
+            --accent-amber: #f59e0b;
+            --accent-purple: #a78bfa;
+            --glow-blue: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .page { position: relative; z-index: 1; }
+
+        .nav-bar {
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--bg-primary);
+        }
+
+        .nav-bar a {
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .nav-bar a:first-child { color: #94a3b8; }
+        .nav-bar a:last-child { color: #6366f1; font-weight: 600; }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 40px 60px;
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 36px;
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .chart-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-cyan));
+        }
+
+        .bar-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .bar-row:last-child { margin-bottom: 0; }
+
+        .bar-label {
+            width: 200px;
+            min-width: 200px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            padding-right: 16px;
+            text-align: right;
+            line-height: 1.3;
+        }
+
+        .bar-track {
+            flex: 1;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 14px;
+            position: relative;
+            min-width: 100px;
+            transition: width 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .bar-fill.pa {
+            background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.6));
+            border: 1px solid rgba(99, 102, 241, 0.4);
+        }
+
+        .bar-fill.cdbg {
+            background: linear-gradient(90deg, rgba(167, 139, 250, 0.2), rgba(167, 139, 250, 0.6));
+            border: 1px solid rgba(167, 139, 250, 0.4);
+        }
+
+        .bar-fill.sba {
+            background: linear-gradient(90deg, rgba(34, 211, 238, 0.2), rgba(34, 211, 238, 0.6));
+            border: 1px solid rgba(34, 211, 238, 0.4);
+        }
+
+        .bar-fill.ihp {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.6));
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .bar-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+        }
+
+        .bar-value-outside {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            margin-left: 12px;
+        }
+
+        .total-row {
+            display: flex;
+            align-items: center;
+            margin-top: 28px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .total-label {
+            width: 200px;
+            min-width: 200px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-primary);
+            padding-right: 16px;
+            text-align: right;
+        }
+
+        .total-value {
+            font-size: 20px;
+            font-weight: 800;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .source-note {
+            margin-top: 24px;
+            font-size: 11px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .source-note a {
+            color: var(--accent-blue);
+            text-decoration: none;
+        }
+
+        .source-note a:hover {
+            text-decoration: underline;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        .legend-dot.pa { background: rgba(99, 102, 241, 0.7); }
+        .legend-dot.cdbg { background: rgba(167, 139, 250, 0.7); }
+        .legend-dot.sba { background: rgba(34, 211, 238, 0.7); }
+        .legend-dot.ihp { background: rgba(16, 185, 129, 0.7); }
+
+        @media (max-width: 768px) {
+            .container { padding: 24px 16px 40px; }
+            .bar-label { width: 120px; min-width: 120px; font-size: 11px; }
+            .total-label { width: 120px; min-width: 120px; }
+            .bar-fill { min-width: 60px; }
+            .bar-value { font-size: 12px; }
+            .bar-value-outside { font-size: 12px; }
+            .bar-track { height: 36px; }
+            h1 { font-size: 18px; }
+            .legend { gap: 12px; }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate { animation: fadeUp 0.6s ease both; }
+    </style>
+    <!-- GoatCounter analytics -->
+    <script data-goatcounter="https://disasterlab.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+<div class="page">
+    <div class="nav-bar">
+        <a href="/sba.html">&larr; SBA Disaster Loans</a>
+        <a href="/">Disaster Lab</a>
+    </div>
+
+    <div class="container">
+        <h1 class="animate" style="animation-delay:0.05s;">Federal Disaster Program Spending</h1>
+        <div class="subtitle animate" style="animation-delay:0.1s;">Fiscal Years 2019&ndash;2022 &middot; Total approved and allocated amounts by program</div>
+
+        <div class="chart-card animate" style="animation-delay:0.15s;">
+
+            <div class="legend">
+                <div class="legend-item"><span class="legend-dot pa"></span>FEMA Public Assistance</div>
+                <div class="legend-item"><span class="legend-dot cdbg"></span>HUD CDBG-DR</div>
+                <div class="legend-item"><span class="legend-dot sba"></span>SBA Approved Loans</div>
+                <div class="legend-item"><span class="legend-dot ihp"></span>FEMA Individual & Household Program</div>
+            </div>
+
+            <div id="chartArea"></div>
+
+            <div class="total-row">
+                <div class="total-label">Combined Total</div>
+                <div class="total-value" id="grandTotal"></div>
+            </div>
+
+            <div class="source-note">
+                Sources: <a href="https://data.sba.gov/en/dataset/disaster-loan-data" target="_blank">SBA Open Data Portal</a> (Disaster Loan Data, FY2019&ndash;FY2022);
+                <a href="https://carnegieendowment.org/features/disaster-dollar-database" target="_blank">Disaster Dollar Database</a> (Carnegie Endowment for International Peace).
+                SBA figures reflect total approved loan amounts from the SBA Disaster Loan Program. IHP, Public Assistance, and CDBG-DR figures from the Disaster Dollar Database.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const programs = [
+        { name: 'FEMA Public Assistance', value: 26460255726, cls: 'pa' },
+        { name: 'HUD CDBG-DR Allocation', value: 11931947000, cls: 'cdbg' },
+        { name: 'SBA Approved Loans', value: 8196260000, cls: 'sba' },
+        { name: 'FEMA Individual &\nHousehold Program', value: 5574607095, cls: 'ihp' }
+    ];
+
+    const maxVal = Math.max(...programs.map(p => p.value));
+    const grandTotal = programs.reduce((s, p) => s + p.value, 0);
+
+    function fmtDollars(val) {
+        if (val >= 1e9) return '$' + (val / 1e9).toFixed(2) + 'B';
+        if (val >= 1e6) return '$' + (val / 1e6).toFixed(1) + 'M';
+        return '$' + val.toLocaleString('en-US');
+    }
+
+    function fmtFull(val) {
+        return '$' + Math.round(val).toLocaleString('en-US');
+    }
+
+    const chart = document.getElementById('chartArea');
+
+    programs.forEach((p, i) => {
+        const pct = (p.value / maxVal) * 100;
+
+        const row = document.createElement('div');
+        row.className = 'bar-row animate';
+        row.style.animationDelay = (0.25 + i * 0.1) + 's';
+
+        const label = document.createElement('div');
+        label.className = 'bar-label';
+        label.textContent = p.name;
+
+        const track = document.createElement('div');
+        track.className = 'bar-track';
+
+        const fill = document.createElement('div');
+        fill.className = 'bar-fill ' + p.cls;
+        fill.style.width = '0%';
+
+        const valSpan = document.createElement('span');
+        valSpan.className = 'bar-value';
+        valSpan.textContent = fmtFull(p.value);
+
+        // If bar is wide enough, put value inside; otherwise outside
+        if (pct > 35) {
+            fill.appendChild(valSpan);
+        }
+
+        track.appendChild(fill);
+
+        row.appendChild(label);
+        row.appendChild(track);
+
+        if (pct <= 35) {
+            const valOut = document.createElement('span');
+            valOut.className = 'bar-value-outside';
+            valOut.textContent = fmtFull(p.value);
+            row.appendChild(valOut);
+        }
+
+        chart.appendChild(row);
+
+        // Animate bars in
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                fill.style.width = pct + '%';
+            });
+        });
+    });
+
+    document.getElementById('grandTotal').textContent = fmtFull(grandTotal);
+})();
+</script>
+</body>
+</html>
