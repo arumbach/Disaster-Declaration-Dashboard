@@ -645,6 +645,7 @@
                         <option value="l">Total Verified Loss</option>
                         <option value="ha">Home Loans Only</option>
                         <option value="ba">Business Loans Only</option>
+                        <option value="d">Disaster Declarations</option>
                     </select>
                     <div class="legend" id="legend"></div>
                 </div>
@@ -1152,16 +1153,30 @@
         `;
     }
 
+    function isDollarMetric(m) { return m !== 'd'; }
+
+    function fmtMetric(val) {
+        if (isDollarMetric(currentMetric)) return fmt$(val);
+        return Math.round(val).toLocaleString('en-US');
+    }
+
+    function fmtMetricFull(val) {
+        if (isDollarMetric(currentMetric)) return fmtFull$(val);
+        return Math.round(val).toLocaleString('en-US');
+    }
+
     // ── Legend ──
     function renderLegend() {
         const legend = document.getElementById('legend');
         if (!colorScale || !colorScale.quantiles) { legend.innerHTML = ''; return; }
         const maxVal = Math.max(...Object.keys(MULTIYEAR_DATA).map(a => getVal(a, currentYear, currentMetric)));
-        let html = '<span style="margin-right:6px;color:var(--text-muted)">$0</span>';
+        const minLabel = isDollarMetric(currentMetric) ? '$0' : '0';
+        const maxLabel = isDollarMetric(currentMetric) ? fmt$(maxVal) : Math.round(maxVal).toLocaleString('en-US');
+        let html = `<span style="margin-right:6px;color:var(--text-muted)">${minLabel}</span>`;
         COLORS.forEach((c, i) => {
             html += `<span class="legend-block" style="background:${c}"></span>`;
         });
-        html += `<span style="margin-left:6px;color:var(--text-muted)">${fmt$(maxVal)}</span>`;
+        html += `<span style="margin-left:6px;color:var(--text-muted)">${maxLabel}</span>`;
         legend.innerHTML = html;
     }
 
@@ -1196,7 +1211,8 @@
             const tip = document.getElementById('tooltip');
             const fyLabel = currentYear === 'all' ? 'FY2019–2022' : `FY${currentYear}`;
 
-            if (!data || ((data.a || 0) === 0 && (data.l || 0) === 0)) {
+            const hasData = data && ((data.a || 0) > 0 || (data.l || 0) > 0 || (data.d || 0) > 0);
+            if (!hasData) {
                 tip.innerHTML = `<div class="tt-state">${name} <span class="tt-year">&mdash; ${fyLabel}</span></div><div style="color:var(--text-muted)">No SBA disaster loan data</div>`;
             } else {
                 tip.innerHTML = `
@@ -1295,7 +1311,7 @@
         for (const abbr of Object.keys(MULTIYEAR_DATA)) {
             const d = getStateYear(abbr, currentYear);
             if (!d) continue;
-            if ((d.a || 0) === 0 && (d.l || 0) === 0) continue;
+            if ((d.a || 0) === 0 && (d.l || 0) === 0 && (d.d || 0) === 0) continue;
             rows.push({
                 abbr,
                 name: STATE_NAMES[abbr] || abbr,
@@ -1386,6 +1402,8 @@
 
         document.getElementById('metricSelector').addEventListener('change', function() {
             currentMetric = this.value;
+            document.getElementById('mapTitle').textContent =
+                currentMetric === 'd' ? 'Disaster Declarations by State' : 'Disaster Loan Funding by State';
             updateMap();
         });
 
