@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SBA Disaster Loan Dashboard — FY2019–2022</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        :root {
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.8);
+            --bg-card-hover: rgba(30, 41, 59, 0.9);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-glow: rgba(99, 102, 241, 0.3);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #6366f1;
+            --accent-cyan: #22d3ee;
+            --accent-green: #10b981;
+            --accent-rose: #f43f5e;
+            --accent-amber: #f59e0b;
+            --accent-purple: #a78bfa;
+            --glow-blue: 0 0 20px rgba(99, 102, 241, 0.3);
+            --glow-cyan: 0 0 20px rgba(34, 211, 238, 0.2);
+            --glow-green: 0 0 20px rgba(16, 185, 129, 0.2);
+            --glow-rose: 0 0 20px rgba(244, 63, 94, 0.2);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image:
+                linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .dashboard { position: relative; z-index: 1; }
+
+        /* ── Header ── */
+        .header {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 28px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%; left: -20%;
+            width: 60%; height: 200%;
+            background: radial-gradient(ellipse, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .header-inner {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            position: relative;
+        }
+
+        .header-title { display: flex; flex-direction: column; gap: 4px; }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #f1f5f9 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header .subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .header-stats { display: flex; gap: 32px; font-size: 13px; }
+
+        .header-stats .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 2px;
+        }
+
+        .header-stats .stat-label {
+            color: var(--text-muted);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .header-stats .stat-value {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        /* ── Content ── */
+        .content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 28px 40px;
+        }
+
+        /* ── Year Selector ── */
+        .year-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 24px;
+            animation: fadeUp 0.5s ease both;
+            animation-delay: 0.03s;
+        }
+
+        .year-selector-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 500;
+            margin-right: 10px;
+        }
+
+        .year-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .year-btn:hover {
+            background: var(--bg-card-hover);
+            border-color: rgba(99, 102, 241, 0.2);
+            color: var(--text-primary);
+        }
+
+        .year-btn.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--accent-blue);
+            color: var(--text-primary);
+            box-shadow: var(--glow-blue);
+        }
+
+        .year-btn.active::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+        }
+
+        .inflation-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .inflation-toggle-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            cursor: pointer;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 2px;
+            bottom: 2px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--accent-blue);
+        }
+
+        .toggle-switch input:checked + .toggle-slider::before {
+            transform: translateX(18px);
+            background: var(--accent-blue);
+        }
+
+        /* ── KPI Cards ── */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px 28px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .kpi-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--border-glow);
+            transform: translateY(-2px);
+        }
+
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .kpi-card.approved::before { background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan)); }
+        .kpi-card.loss::before { background: linear-gradient(90deg, var(--accent-rose), var(--accent-amber)); }
+        .kpi-card.states::before { background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); }
+        .kpi-card.ratio::before { background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue)); }
+
+        .kpi-card.approved:hover { box-shadow: var(--glow-green); }
+        .kpi-card.loss:hover { box-shadow: var(--glow-rose); }
+        .kpi-card.states:hover { box-shadow: var(--glow-blue); }
+        .kpi-card.ratio:hover { box-shadow: var(--glow-cyan); }
+
+        .kpi-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            margin-bottom: 16px;
+        }
+
+        .kpi-card.approved .kpi-icon { background: rgba(16, 185, 129, 0.12); color: var(--accent-green); }
+        .kpi-card.loss .kpi-icon { background: rgba(244, 63, 94, 0.12); color: var(--accent-rose); }
+        .kpi-card.states .kpi-icon { background: rgba(99, 102, 241, 0.12); color: var(--accent-blue); }
+        .kpi-card.ratio .kpi-icon { background: rgba(34, 211, 238, 0.12); color: var(--accent-cyan); }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .kpi-value {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            line-height: 1;
+            margin-bottom: 6px;
+            transition: opacity 0.2s;
+        }
+
+        .kpi-card.approved .kpi-value { color: var(--accent-green); }
+        .kpi-card.loss .kpi-value { color: var(--accent-rose); }
+        .kpi-card.states .kpi-value { color: var(--accent-blue); }
+        .kpi-card.ratio .kpi-value { color: var(--accent-cyan); }
+
+        .kpi-suffix { font-size: 20px; font-weight: 600; }
+        .kpi-sub { font-size: 12px; color: var(--text-muted); }
+
+        /* ── Sections ── */
+        .section {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-bottom: 28px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            padding: 20px 28px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        /* ── Data Note ── */
+        .data-note-banner {
+            background: rgba(99, 102, 241, 0.06);
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: 12px;
+            padding: 14px 20px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 28px;
+            line-height: 1.6;
+        }
+
+        .data-note-banner strong { color: var(--accent-purple); }
+
+        /* ── Map ── */
+        .map-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .map-controls label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .map-controls select {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .map-controls select:hover,
+        .map-controls select:focus {
+            border-color: var(--accent-blue);
+            outline: none;
+        }
+
+        .map-container { position: relative; padding: 24px; }
+        .map-container svg { width: 100%; height: auto; }
+
+        .map-container path.state {
+            stroke: rgba(255, 255, 255, 0.08);
+            stroke-width: 0.8;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .map-container path.state:hover {
+            stroke: var(--accent-cyan);
+            stroke-width: 1.5;
+            filter: brightness(1.2);
+        }
+
+        .map-tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(99, 102, 241, 0.25);
+            border-radius: 12px;
+            padding: 16px 20px;
+            font-size: 13px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), var(--glow-blue);
+            z-index: 10;
+            max-width: 300px;
+            display: none;
+        }
+
+        .map-tooltip .tt-state {
+            font-weight: 700;
+            font-size: 15px;
+            margin-bottom: 10px;
+            color: var(--accent-cyan);
+        }
+
+        .map-tooltip .tt-year {
+            font-size: 12px;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .map-tooltip .tt-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 3px 0;
+        }
+
+        .map-tooltip .tt-label { color: var(--text-muted); }
+        .map-tooltip .tt-value { font-weight: 600; text-align: right; color: var(--text-primary); }
+
+        .legend {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .legend-block {
+            width: 28px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* ── Table ── */
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+
+        thead th {
+            text-align: left;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            cursor: pointer;
+            white-space: nowrap;
+            user-select: none;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        thead th:hover { color: var(--accent-blue); }
+
+        tbody td {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            font-variant-numeric: tabular-nums;
+        }
+
+        tbody tr { transition: background 0.15s; }
+        tbody tr:hover { background: rgba(99, 102, 241, 0.04); }
+
+        .state-name { font-weight: 600; color: var(--text-primary); }
+        .state-abbr { color: var(--text-muted); font-weight: 400; font-size: 12px; }
+
+        .sort-arrow { font-size: 10px; opacity: 0.2; margin-left: 4px; }
+        .sort-arrow.active { opacity: 1; color: var(--accent-blue); }
+
+        .data-note-footer {
+            padding: 14px 20px;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+        }
+
+        /* ── Loading ── */
+        .loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .kpi-card { animation: fadeUp 0.5s ease both; }
+        .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+        .kpi-card:nth-child(2) { animation-delay: 0.1s; }
+        .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+        .kpi-card:nth-child(4) { animation-delay: 0.2s; }
+
+        .section { animation: fadeUp 0.5s ease both; animation-delay: 0.25s; }
+        .data-note-banner { animation: fadeUp 0.5s ease both; animation-delay: 0.22s; }
+
+        @media (max-width: 1024px) {
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .header { padding: 20px; }
+            .header h1 { font-size: 20px; }
+            .content { padding: 16px; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .kpi-value { font-size: 28px; }
+            table { font-size: 12px; }
+            tbody td, thead th { padding: 10px 14px; }
+            .header-stats { display: none; }
+            .year-btn { padding: 8px 16px; font-size: 14px; }
+        }
+    </style>
+    <!-- GoatCounter analytics -->
+    <script data-goatcounter="https://disasterlab.goatcounter.com/count"
+            async src="//gc.zgo.at/count.js"></script>
+</head>
+<body>
+    <div style="border-bottom:1px solid rgba(255,255,255,0.08);padding:12px 24px;display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto;background:var(--bg-primary);">
+        <a href="/sba.html" style="font-size:14px;color:#94a3b8;text-decoration:none;">&larr; SBA Disaster Loans</a>
+        <a href="/" style="font-size:14px;color:#6366f1;text-decoration:none;font-weight:600;">Disaster Lab</a>
+    </div>
+<div class="dashboard">
+    <div class="header">
+        <div class="header-inner">
+            <div class="header-title">
+                <h1>SBA Disaster Loan Dashboard</h1>
+                <span class="subtitle" id="headerSubtitle">Fiscal Year 2022 &middot; October 2021 &ndash; September 2022</span>
+            </div>
+            <div class="header-stats" id="headerStats">
+                <div class="stat">
+                    <span class="stat-label">Loading</span>
+                    <span class="stat-value">&mdash;</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <!-- Year Selector -->
+        <div class="year-selector" id="yearSelector">
+            <span class="year-selector-label">Fiscal Year</span>
+            <button class="year-btn" data-year="2019">2019</button>
+            <button class="year-btn" data-year="2020">2020</button>
+            <button class="year-btn" data-year="2021">2021</button>
+            <button class="year-btn active" data-year="2022">2022</button>
+            <button class="year-btn" data-year="all" style="margin-left:6px;border-left:1px solid rgba(255,255,255,0.1);padding-left:18px;">All Years</button>
+            <div class="inflation-toggle">
+                <span class="inflation-toggle-label">Adjust for inflation (2026 $)</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="inflationToggle">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card approved">
+                <div class="kpi-icon">&#9650;</div>
+                <div class="kpi-label">Total Approved Loans</div>
+                <div class="kpi-value" id="totalApproved">--</div>
+                <div class="kpi-sub">Home + Business combined</div>
+            </div>
+            <div class="kpi-card loss">
+                <div class="kpi-icon">&#9660;</div>
+                <div class="kpi-label">Total Verified Loss</div>
+                <div class="kpi-value" id="totalLoss">--</div>
+                <div class="kpi-sub">Assessed by SBA inspectors</div>
+            </div>
+            <div class="kpi-card states">
+                <div class="kpi-icon">&#9670;</div>
+                <div class="kpi-label">States with Approved Loans</div>
+                <div class="kpi-value" id="stateCount">--</div>
+                <div class="kpi-sub" id="disasterCountSub">Loading...</div>
+            </div>
+            <div class="kpi-card ratio">
+                <div class="kpi-icon">&#9679;</div>
+                <div class="kpi-label">Approval-to-Loss Ratio</div>
+                <div class="kpi-value" id="approvalRatio">--</div>
+                <div class="kpi-sub">Approved as % of verified loss</div>
+            </div>
+        </div>
+
+        <div class="data-note-banner">
+            <strong>Data Note:</strong> This dashboard uses SBA Disaster Loan data from FY2019&ndash;FY2022, sourced from the SBA Open Data Portal.
+            Dollar values are original verified loss and approved loan amounts and may not reflect subsequent adjustments.
+            Data is aggregated from city/county-level records to state totals.
+            <span id="inflationNote" style="display:none"> Inflation adjustment uses CPI-U annual averages (BLS) normalized to January 2026 dollars.</span>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title" id="mapTitle">Disaster Loan Funding by State</span>
+                <div class="map-controls">
+                    <label for="metricSelector">Showing:</label>
+                    <select id="metricSelector">
+                        <option value="a">Total Approved Loan Amount</option>
+                        <option value="l">Total Verified Loss</option>
+                        <option value="ha">Home Loans Only</option>
+                        <option value="ba">Business Loans Only</option>
+                    </select>
+                    <div class="legend" id="legend"></div>
+                </div>
+            </div>
+            <div class="map-container" id="mapContainer">
+                <div class="loading" id="mapLoading">
+                    <div class="spinner"></div>
+                    <p>Loading map data...</p>
+                </div>
+                <div class="map-tooltip" id="tooltip"></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
+                <span class="section-title" id="tableTitle">State Summary &mdash; FY2022</span>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th data-sort="name">State <span class="sort-arrow">&#9650;&#9660;</span></th>
+                        <th data-sort="a">Total Approved <span class="sort-arrow active">&#9650;&#9660;</span></th>
+                        <th data-sort="l">Total Loss <span class="sort-arrow">&#9650;&#9660;</span></th>
+                        <th data-sort="ha">Home Loans <span class="sort-arrow">&#9650;&#9660;</span></th>
+                        <th data-sort="ba">Business Loans <span class="sort-arrow">&#9650;&#9660;</span></th>
+                        <th data-sort="d">Disasters <span class="sort-arrow">&#9650;&#9660;</span></th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <tr><td colspan="6" class="loading"><div class="spinner"></div><p>Loading...</p></td></tr>
+                </tbody>
+            </table>
+            <div class="data-note-footer">Data sourced from SBA Open Data Portal (data.sba.gov).</div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ── Multi-year state data (FY2019–2022, values in thousands) ──
+    const MULTIYEAR_DATA = {
+        "AK": {
+            "2019": {"a":90769,"ha":75489,"ba":15280,"l":17945,"d":2,"r":120},
+            "2020": {"a":276,"ha":276,"ba":0,"l":932,"d":2,"r":6},
+            "2021": {"a":148,"ha":0,"ba":148,"l":38,"d":1,"r":2},
+            "2022": {"a":231,"ha":207,"ba":24,"l":5270,"d":1,"r":32}
+        },
+        "AL": {
+            "2019": {"a":6642,"ha":5907,"ba":735,"l":22263,"d":6,"r":71},
+            "2020": {"a":146287,"ha":129257,"ba":17031,"l":262846,"d":5,"r":234},
+            "2021": {"a":14149,"ha":13672,"ba":477,"l":47953,"d":10,"r":382},
+            "2022": {"a":6354,"ha":5053,"ba":1300,"l":10305,"d":3,"r":104}
+        },
+        "AR": {
+            "2019": {"a":16837,"ha":15920,"ba":918,"l":5174,"d":2,"r":100},
+            "2020": {"a":888,"ha":888,"ba":0,"l":3241,"d":8,"r":96},
+            "2021": {"a":3,"ha":3,"ba":0,"l":3,"d":8,"r":12},
+            "2022": {"a":4200,"ha":2981,"ba":1219,"l":15158,"d":5,"r":34}
+        },
+        "AZ": {
+            "2019": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":2},
+            "2020": {"a":240,"ha":240,"ba":0,"l":756,"d":6,"r":55},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":6,"r":21},
+            "2022": {"a":1337,"ha":1293,"ba":44,"l":3997,"d":4,"r":103}
+        },
+        "CA": {
+            "2019": {"a":484474,"ha":416836,"ba":67637,"l":231515,"d":6,"r":305},
+            "2020": {"a":71245,"ha":58758,"ba":12487,"l":317753,"d":14,"r":1960},
+            "2021": {"a":28166,"ha":23844,"ba":4322,"l":181859,"d":14,"r":1036},
+            "2022": {"a":5419,"ha":4452,"ba":967,"l":21927,"d":10,"r":148}
+        },
+        "CO": {
+            "2020": {"a":0,"ha":0,"ba":0,"l":599,"d":4,"r":5},
+            "2021": {"a":2267,"ha":2267,"ba":0,"l":18417,"d":8,"r":20},
+            "2022": {"a":107646,"ha":99428,"ba":8218,"l":392804,"d":9,"r":68}
+        },
+        "CT": {
+            "2019": {"a":1470,"ha":1460,"ba":10,"l":81,"d":1,"r":30},
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1},
+            "2021": {"a":0,"ha":0,"ba":0,"l":15,"d":4,"r":6},
+            "2022": {"a":15437,"ha":12620,"ba":2818,"l":26835,"d":2,"r":119}
+        },
+        "DC": {
+            "2019": {"a":6,"ha":6,"ba":0,"l":0,"d":1,"r":7},
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":3,"r":3},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":3,"r":3},
+            "2022": {"a":25,"ha":0,"ba":25,"l":124,"d":1,"r":9}
+        },
+        "DE": {
+            "2019": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1},
+            "2020": {"a":0,"ha":0,"ba":0,"l":71,"d":5,"r":18},
+            "2021": {"a":0,"ha":0,"ba":0,"l":41,"d":4,"r":9},
+            "2022": {"a":590,"ha":562,"ba":29,"l":3581,"d":3,"r":44}
+        },
+        "FL": {
+            "2019": {"a":1065289,"ha":523706,"ba":541582,"l":3743968,"d":7,"r":393},
+            "2020": {"a":3260,"ha":1648,"ba":1612,"l":6263,"d":13,"r":312},
+            "2021": {"a":92935,"ha":83285,"ba":9650,"l":175385,"d":15,"r":484},
+            "2022": {"a":1765037,"ha":1481764,"ba":283273,"l":3709557,"d":9,"r":2067}
+        },
+        "GA": {
+            "2019": {"a":131052,"ha":44952,"ba":86100,"l":255594,"d":5,"r":225},
+            "2020": {"a":964,"ha":460,"ba":504,"l":1660,"d":12,"r":59},
+            "2021": {"a":3286,"ha":3189,"ba":98,"l":9909,"d":7,"r":53},
+            "2022": {"a":4074,"ha":3715,"ba":359,"l":9649,"d":6,"r":119}
+        },
+        "HI": {
+            "2019": {"a":1150,"ha":824,"ba":326,"l":4283,"d":1,"r":14},
+            "2021": {"a":526,"ha":200,"ba":326,"l":1397,"d":2,"r":26},
+            "2022": {"a":1157,"ha":1011,"ba":146,"l":2114,"d":1,"r":30}
+        },
+        "IA": {
+            "2019": {"a":37943,"ha":32497,"ba":5445,"l":11722,"d":6,"r":135},
+            "2020": {"a":28094,"ha":26335,"ba":1760,"l":63799,"d":6,"r":317},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":3,"r":3}
+        },
+        "ID": {
+            "2019": {"a":102,"ha":102,"ba":0,"l":0,"d":1,"r":5},
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":3,"r":3},
+            "2022": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1}
+        },
+        "IL": {
+            "2019": {"a":3351,"ha":2829,"ba":522,"l":3080,"d":4,"r":62},
+            "2020": {"a":7102,"ha":4190,"ba":2912,"l":11750,"d":13,"r":434},
+            "2021": {"a":5916,"ha":5277,"ba":639,"l":9154,"d":11,"r":130},
+            "2022": {"a":1000,"ha":1000,"ba":0,"l":9757,"d":3,"r":60}
+        },
+        "IN": {
+            "2019": {"a":1592,"ha":1313,"ba":278,"l":732,"d":3,"r":23},
+            "2020": {"a":1067,"ha":1067,"ba":0,"l":1785,"d":8,"r":80},
+            "2021": {"a":1594,"ha":1112,"ba":482,"l":2472,"d":8,"r":37},
+            "2022": {"a":2145,"ha":2108,"ba":37,"l":3413,"d":4,"r":44}
+        },
+        "KS": {
+            "2019": {"a":2517,"ha":2494,"ba":23,"l":273,"d":5,"r":27},
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":3},
+            "2021": {"a":311,"ha":311,"ba":0,"l":648,"d":2,"r":5},
+            "2022": {"a":816,"ha":816,"ba":0,"l":3645,"d":2,"r":7}
+        },
+        "KY": {
+            "2019": {"a":895,"ha":878,"ba":18,"l":242,"d":2,"r":26},
+            "2020": {"a":407,"ha":382,"ba":25,"l":624,"d":3,"r":37},
+            "2021": {"a":8397,"ha":6649,"ba":1749,"l":17873,"d":4,"r":155},
+            "2022": {"a":119587,"ha":104627,"ba":14961,"l":355105,"d":7,"r":383}
+        },
+        "LA": {
+            "2019": {"a":5156,"ha":2871,"ba":2285,"l":2957,"d":5,"r":75},
+            "2020": {"a":614288,"ha":564965,"ba":49322,"l":1199325,"d":14,"r":895},
+            "2021": {"a":1404842,"ha":1286081,"ba":118761,"l":5122393,"d":24,"r":1555},
+            "2022": {"a":0,"ha":0,"ba":0,"l":0,"d":4,"r":6}
+        },
+        "MA": {
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":5,"r":5},
+            "2021": {"a":0,"ha":0,"ba":0,"l":1,"d":6,"r":9},
+            "2022": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1}
+        },
+        "MD": {
+            "2019": {"a":803,"ha":803,"ba":0,"l":107,"d":3,"r":20},
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":7,"r":15},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":2,"r":3},
+            "2022": {"a":1376,"ha":690,"ba":687,"l":2714,"d":3,"r":76}
+        },
+        "ME": {
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1}
+        },
+        "MI": {
+            "2019": {"a":3416,"ha":2666,"ba":750,"l":1071,"d":2,"r":70},
+            "2020": {"a":43319,"ha":38817,"ba":4502,"l":85776,"d":11,"r":174},
+            "2021": {"a":141726,"ha":132755,"ba":8971,"l":358736,"d":7,"r":321},
+            "2022": {"a":1421,"ha":777,"ba":644,"l":7331,"d":4,"r":15}
+        },
+        "MN": {
+            "2019": {"a":1897,"ha":1849,"ba":48,"l":100,"d":1,"r":19},
+            "2020": {"a":4040,"ha":28,"ba":4012,"l":8708,"d":4,"r":133},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":2,"r":2},
+            "2022": {"a":5086,"ha":2300,"ba":2786,"l":8925,"d":4,"r":43}
+        },
+        "MO": {
+            "2019": {"a":18725,"ha":15144,"ba":3580,"l":10411,"d":3,"r":171},
+            "2020": {"a":1662,"ha":1075,"ba":586,"l":3073,"d":8,"r":46},
+            "2021": {"a":43,"ha":43,"ba":0,"l":77,"d":7,"r":12},
+            "2022": {"a":35195,"ha":28435,"ba":6760,"l":86117,"d":3,"r":195}
+        },
+        "MS": {
+            "2019": {"a":7600,"ha":6868,"ba":732,"l":2729,"d":7,"r":94},
+            "2020": {"a":17021,"ha":15581,"ba":1440,"l":40496,"d":16,"r":251},
+            "2021": {"a":32693,"ha":28973,"ba":3721,"l":58648,"d":11,"r":120},
+            "2022": {"a":7417,"ha":7202,"ba":215,"l":18588,"d":5,"r":120}
+        },
+        "MT": {
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1},
+            "2022": {"a":14166,"ha":4520,"ba":9646,"l":13300,"d":2,"r":45}
+        },
+        "NC": {
+            "2019": {"a":4143,"ha":4013,"ba":130,"l":10387,"d":5,"r":48},
+            "2020": {"a":8498,"ha":6381,"ba":2118,"l":24051,"d":9,"r":153},
+            "2021": {"a":5215,"ha":3905,"ba":1310,"l":13031,"d":8,"r":95},
+            "2022": {"a":0,"ha":0,"ba":0,"l":0,"d":2,"r":2}
+        },
+        "ND": {
+            "2019": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1}
+        },
+        "NE": {
+            "2019": {"a":53566,"ha":42313,"ba":11253,"l":15801,"d":4,"r":272},
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1},
+            "2022": {"a":0,"ha":0,"ba":0,"l":3554,"d":1,"r":1}
+        },
+        "NH": {
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1}
+        },
+        "NJ": {
+            "2019": {"a":2915,"ha":2679,"ba":236,"l":351,"d":3,"r":55},
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":3,"r":39},
+            "2021": {"a":252373,"ha":220039,"ba":32333,"l":535744,"d":10,"r":712},
+            "2022": {"a":51,"ha":51,"ba":0,"l":340,"d":1,"r":9}
+        },
+        "NM": {
+            "2019": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1},
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":2,"r":2},
+            "2022": {"a":8074,"ha":6534,"ba":1540,"l":32237,"d":2,"r":61}
+        },
+        "NV": {
+            "2019": {"a":6,"ha":6,"ba":0,"l":0,"d":2,"r":3},
+            "2020": {"a":0,"ha":0,"ba":0,"l":5,"d":6,"r":11},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":5,"r":16},
+            "2022": {"a":0,"ha":0,"ba":0,"l":0,"d":3,"r":4}
+        },
+        "NY": {
+            "2019": {"a":2372,"ha":1802,"ba":571,"l":278,"d":3,"r":50},
+            "2020": {"a":1852,"ha":1400,"ba":452,"l":3592,"d":16,"r":79},
+            "2021": {"a":219063,"ha":193629,"ba":25435,"l":419736,"d":19,"r":907},
+            "2022": {"a":1123,"ha":997,"ba":126,"l":2115,"d":4,"r":23}
+        },
+        "OH": {
+            "2019": {"a":32051,"ha":26950,"ba":5101,"l":44178,"d":6,"r":170},
+            "2020": {"a":982,"ha":944,"ba":38,"l":2194,"d":12,"r":148},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":5,"r":8},
+            "2022": {"a":36,"ha":36,"ba":0,"l":35,"d":1,"r":2}
+        },
+        "OK": {
+            "2019": {"a":41271,"ha":35578,"ba":5693,"l":14017,"d":6,"r":332},
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":5,"r":13},
+            "2021": {"a":2488,"ha":2296,"ba":193,"l":6628,"d":4,"r":222},
+            "2022": {"a":8038,"ha":6631,"ba":1408,"l":18636,"d":5,"r":82}
+        },
+        "OR": {
+            "2019": {"a":0,"ha":0,"ba":0,"l":29,"d":2,"r":4},
+            "2020": {"a":65361,"ha":59260,"ba":6101,"l":221726,"d":4,"r":378},
+            "2021": {"a":0,"ha":0,"ba":0,"l":3038,"d":3,"r":9},
+            "2022": {"a":0,"ha":0,"ba":0,"l":43,"d":1,"r":11}
+        },
+        "PA": {
+            "2019": {"a":9891,"ha":7288,"ba":2604,"l":4946,"d":13,"r":228},
+            "2020": {"a":951,"ha":468,"ba":483,"l":7541,"d":9,"r":214},
+            "2021": {"a":64385,"ha":51763,"ba":12622,"l":133103,"d":7,"r":711},
+            "2022": {"a":7285,"ha":3893,"ba":3392,"l":16433,"d":7,"r":180}
+        },
+        "PR": {
+            "2020": {"a":54170,"ha":47251,"ba":6919,"l":328649,"d":3,"r":181},
+            "2021": {"a":160,"ha":160,"ba":0,"l":451,"d":2,"r":9},
+            "2022": {"a":103813,"ha":74119,"ba":29694,"l":163395,"d":3,"r":450}
+        },
+        "SC": {
+            "2019": {"a":58,"ha":0,"ba":58,"l":240,"d":2,"r":5},
+            "2020": {"a":7157,"ha":6265,"ba":892,"l":18076,"d":4,"r":158},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":2,"r":3},
+            "2022": {"a":177,"ha":177,"ba":0,"l":1117,"d":1,"r":19}
+        },
+        "SD": {
+            "2019": {"a":5318,"ha":4806,"ba":513,"l":669,"d":2,"r":109},
+            "2020": {"a":8434,"ha":7670,"ba":764,"l":19075,"d":2,"r":77},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1},
+            "2022": {"a":0,"ha":0,"ba":0,"l":490,"d":1,"r":2}
+        },
+        "TN": {
+            "2019": {"a":3807,"ha":3346,"ba":460,"l":487,"d":1,"r":57},
+            "2020": {"a":26475,"ha":19829,"ba":6646,"l":110401,"d":17,"r":269},
+            "2021": {"a":23399,"ha":15331,"ba":8068,"l":70517,"d":10,"r":129},
+            "2022": {"a":9213,"ha":5822,"ba":3391,"l":32236,"d":7,"r":117}
+        },
+        "TX": {
+            "2019": {"a":26550,"ha":23601,"ba":2949,"l":4444,"d":7,"r":206},
+            "2020": {"a":104962,"ha":91840,"ba":13122,"l":339105,"d":16,"r":767},
+            "2021": {"a":176498,"ha":156383,"ba":20115,"l":401627,"d":21,"r":2621},
+            "2022": {"a":12335,"ha":11603,"ba":732,"l":39176,"d":7,"r":323}
+        },
+        "UT": {
+            "2020": {"a":2326,"ha":1876,"ba":450,"l":5487,"d":2,"r":88},
+            "2021": {"a":145,"ha":38,"ba":107,"l":1007,"d":3,"r":11},
+            "2022": {"a":360,"ha":360,"ba":0,"l":576,"d":1,"r":5}
+        },
+        "VA": {
+            "2019": {"a":9017,"ha":7237,"ba":1780,"l":4281,"d":3,"r":72},
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":7,"r":12},
+            "2021": {"a":0,"ha":0,"ba":0,"l":14,"d":5,"r":20},
+            "2022": {"a":1024,"ha":986,"ba":38,"l":1981,"d":6,"r":23}
+        },
+        "VT": {
+            "2020": {"a":0,"ha":0,"ba":0,"l":13,"d":1,"r":6},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":3,"r":6}
+        },
+        "WA": {
+            "2019": {"a":705,"ha":597,"ba":108,"l":330,"d":3,"r":5},
+            "2020": {"a":190,"ha":70,"ba":120,"l":343,"d":6,"r":21},
+            "2021": {"a":2113,"ha":1775,"ba":338,"l":8126,"d":3,"r":23},
+            "2022": {"a":14369,"ha":11472,"ba":2897,"l":30382,"d":3,"r":101}
+        },
+        "WI": {
+            "2019": {"a":16754,"ha":14063,"ba":2690,"l":13442,"d":3,"r":122},
+            "2020": {"a":293,"ha":293,"ba":0,"l":598,"d":6,"r":33},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":4,"r":4}
+        },
+        "WV": {
+            "2020": {"a":0,"ha":0,"ba":0,"l":5,"d":4,"r":4},
+            "2021": {"a":1833,"ha":1650,"ba":184,"l":3954,"d":3,"r":55},
+            "2022": {"a":1185,"ha":1101,"ba":84,"l":2257,"d":3,"r":9}
+        },
+        "WY": {
+            "2020": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1},
+            "2021": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":1},
+            "2022": {"a":0,"ha":0,"ba":0,"l":0,"d":1,"r":2}
+        }
+    };
+
+    const YEARS = [2019, 2020, 2021, 2022];
+
+    const FY_DATES = {
+        2019: 'October 2018 \u2013 September 2019',
+        2020: 'October 2019 \u2013 September 2020',
+        2021: 'October 2020 \u2013 September 2021',
+        2022: 'October 2021 \u2013 September 2022',
+        all: 'October 2018 \u2013 September 2022'
+    };
+
+    const FIPS_TO_ABBR = {
+        '01':'AL','02':'AK','04':'AZ','05':'AR','06':'CA','08':'CO','09':'CT',
+        '10':'DE','11':'DC','12':'FL','13':'GA','15':'HI','16':'ID','17':'IL',
+        '18':'IN','19':'IA','20':'KS','21':'KY','22':'LA','23':'ME','24':'MD',
+        '25':'MA','26':'MI','27':'MN','28':'MS','29':'MO','30':'MT','31':'NE',
+        '32':'NV','33':'NH','34':'NJ','35':'NM','36':'NY','37':'NC','38':'ND',
+        '39':'OH','40':'OK','41':'OR','42':'PA','44':'RI','45':'SC','46':'SD',
+        '47':'TN','48':'TX','49':'UT','50':'VT','51':'VA','53':'WA','54':'WV',
+        '55':'WI','56':'WY','72':'PR'
+    };
+
+    const STATE_NAMES = {
+        'AL':'Alabama','AK':'Alaska','AZ':'Arizona','AR':'Arkansas','CA':'California',
+        'CO':'Colorado','CT':'Connecticut','DE':'Delaware','DC':'District of Columbia',
+        'FL':'Florida','GA':'Georgia','HI':'Hawaii','ID':'Idaho','IL':'Illinois',
+        'IN':'Indiana','IA':'Iowa','KS':'Kansas','KY':'Kentucky','LA':'Louisiana',
+        'ME':'Maine','MD':'Maryland','MA':'Massachusetts','MI':'Michigan','MN':'Minnesota',
+        'MS':'Mississippi','MO':'Missouri','MT':'Montana','NE':'Nebraska','NV':'Nevada',
+        'NH':'New Hampshire','NJ':'New Jersey','NM':'New Mexico','NY':'New York',
+        'NC':'North Carolina','ND':'North Dakota','OH':'Ohio','OK':'Oklahoma','OR':'Oregon',
+        'PA':'Pennsylvania','PR':'Puerto Rico','RI':'Rhode Island','SC':'South Carolina',
+        'SD':'South Dakota','TN':'Tennessee','TX':'Texas','UT':'Utah','VT':'Vermont',
+        'VA':'Virginia','WA':'Washington','WV':'West Virginia','WI':'Wisconsin','WY':'Wyoming'
+    };
+
+    const COLORS = ['#0c1929','#122547','#1a3a6b','#1e5a8a','#1a7fb0','#22a7d3','#22d3ee'];
+    const NO_DATA_COLOR = '#1a1f2e';
+
+    let currentYear = 2022;
+    let currentMetric = 'a';
+    let colorScale = null;
+    let sortCol = 'a';
+    let sortAsc = false;
+    let inflationAdjusted = false;
+
+    // CPI-U annual averages (BLS / Minneapolis Fed)
+    // Target: Jan 2026 CPI = 325.25
+    const CPI_TARGET = 325.25;
+    const CPI_BY_YEAR = { 2019: 255.7, 2020: 258.8, 2021: 271.0, 2022: 292.7 };
+    const INFLATION_MULT = {};
+    for (const y of YEARS) {
+        INFLATION_MULT[y] = CPI_TARGET / CPI_BY_YEAR[y];
+    }
+
+    // Dollar metric keys (non-dollar metrics like 'd' and 'r' should not be adjusted)
+    const DOLLAR_METRICS = new Set(['a', 'l', 'ha', 'ba']);
+
+    // ── Helpers ──
+    function inflationMultiplier(yr) {
+        if (!inflationAdjusted) return 1;
+        if (yr === 'all') return 1; // handled per-year in getStateYear
+        return INFLATION_MULT[yr] || 1;
+    }
+
+    function getStateYear(abbr, yr) {
+        const s = MULTIYEAR_DATA[abbr];
+        if (!s) return null;
+        if (yr === 'all') {
+            // Aggregate across all years, applying per-year inflation if enabled
+            const agg = { a: 0, l: 0, ha: 0, ba: 0, d: 0, r: 0 };
+            let hasData = false;
+            for (const y of YEARS) {
+                const d = s['' + y];
+                if (d) {
+                    hasData = true;
+                    const m = inflationAdjusted ? INFLATION_MULT[y] : 1;
+                    agg.a += (d.a || 0) * m;
+                    agg.l += (d.l || 0) * m;
+                    agg.ha += (d.ha || 0) * m;
+                    agg.ba += (d.ba || 0) * m;
+                    agg.d += d.d || 0;
+                    agg.r += d.r || 0;
+                }
+            }
+            return hasData ? agg : null;
+        }
+        const raw = s['' + yr] || null;
+        if (!raw || !inflationAdjusted) return raw;
+        // Return inflation-adjusted copy
+        const m = INFLATION_MULT[yr] || 1;
+        return {
+            a: (raw.a || 0) * m,
+            l: (raw.l || 0) * m,
+            ha: (raw.ha || 0) * m,
+            ba: (raw.ba || 0) * m,
+            d: raw.d || 0,
+            r: raw.r || 0
+        };
+    }
+
+    function getVal(abbr, yr, metric) {
+        const d = getStateYear(abbr, yr);
+        if (!d) return 0;
+        return d[metric] || 0;
+    }
+
+    function formatDollars(val) {
+        if (val == null || val === 0) return '$0';
+        if (val >= 1e9) return '$' + (val / 1e9).toFixed(2) + 'B';
+        if (val >= 1e6) return '$' + (val / 1e6).toFixed(1) + 'M';
+        if (val >= 1e3) return '$' + (val / 1e3).toFixed(0) + 'K';
+        return '$' + val.toLocaleString('en-US', { maximumFractionDigits: 0 });
+    }
+
+    function formatDollarsFull(val) {
+        if (val == null) return '$0';
+        return '$' + Math.round(val).toLocaleString('en-US');
+    }
+
+    // Values are stored in thousands, multiply for display
+    function fmt$(val) { return formatDollars(val * 1000); }
+    function fmtFull$(val) { return formatDollarsFull(val * 1000); }
+
+    function buildColorScale() {
+        const values = Object.keys(MULTIYEAR_DATA)
+            .map(abbr => getVal(abbr, currentYear, currentMetric))
+            .filter(v => v > 0);
+        if (values.length === 0) { colorScale = () => NO_DATA_COLOR; return; }
+        colorScale = d3.scaleQuantile().domain(values).range(COLORS);
+    }
+
+    function getColor(abbr) {
+        const val = getVal(abbr, currentYear, currentMetric);
+        if (!val || val === 0) return NO_DATA_COLOR;
+        return colorScale(val);
+    }
+
+    // ── Update header subtitle ──
+    function updateSubtitle() {
+        const label = currentYear === 'all' ? 'All Fiscal Years (2019–2022)' : `Fiscal Year ${currentYear}`;
+        const adj = inflationAdjusted ? ' &middot; <span style="color:var(--accent-blue)">2026 dollars</span>' : '';
+        document.getElementById('headerSubtitle').innerHTML =
+            `${label} &middot; ${FY_DATES[currentYear]}${adj}`;
+    }
+
+    // ── Render KPI cards ──
+    function renderCards() {
+        let totalA = 0, totalL = 0, statesWithLoans = 0, totalDisasters = 0;
+
+        for (const abbr of Object.keys(MULTIYEAR_DATA)) {
+            const d = getStateYear(abbr, currentYear);
+            if (!d) continue;
+            totalA += d.a || 0;
+            totalL += d.l || 0;
+            if ((d.a || 0) > 0) statesWithLoans++;
+            totalDisasters += d.d || 0;
+        }
+
+        document.getElementById('totalApproved').innerHTML = fmt$(totalA);
+        document.getElementById('totalLoss').innerHTML = fmt$(totalL);
+        document.getElementById('stateCount').textContent = statesWithLoans;
+        document.getElementById('disasterCountSub').textContent = `Across ${totalDisasters} disaster declarations`;
+        const ratio = totalL > 0 ? ((totalA / totalL) * 100).toFixed(1) : '0';
+        document.getElementById('approvalRatio').innerHTML = `${ratio}<span class="kpi-suffix">%</span>`;
+
+        const fyLabel = currentYear === 'all' ? 'FY2019–2022' : `FY${currentYear}`;
+        document.getElementById('headerStats').innerHTML = `
+            <div class="stat">
+                <span class="stat-label">${fyLabel} Approved</span>
+                <span class="stat-value">${fmt$(totalA)}</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Verified Loss</span>
+                <span class="stat-value">${fmt$(totalL)}</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">States</span>
+                <span class="stat-value">${statesWithLoans}</span>
+            </div>
+        `;
+    }
+
+    // ── Legend ──
+    function renderLegend() {
+        const legend = document.getElementById('legend');
+        if (!colorScale || !colorScale.quantiles) { legend.innerHTML = ''; return; }
+        const maxVal = Math.max(...Object.keys(MULTIYEAR_DATA).map(a => getVal(a, currentYear, currentMetric)));
+        let html = '<span style="margin-right:6px;color:var(--text-muted)">$0</span>';
+        COLORS.forEach((c, i) => {
+            html += `<span class="legend-block" style="background:${c}"></span>`;
+        });
+        html += `<span style="margin-left:6px;color:var(--text-muted)">${fmt$(maxVal)}</span>`;
+        legend.innerHTML = html;
+    }
+
+    // ── Map ──
+    function renderMap(us) {
+        const container = document.getElementById('mapContainer');
+        document.getElementById('mapLoading').style.display = 'none';
+
+        const width = 960, height = 600;
+        const svg = d3.select(container)
+            .append('svg')
+            .attr('viewBox', `0 0 ${width} ${height}`)
+            .attr('preserveAspectRatio', 'xMidYMid meet');
+
+        const projection = d3.geoAlbersUsa().scale(1280).translate([width / 2, height / 2]);
+        const path = d3.geoPath().projection(projection);
+
+        const allFeatures = topojson.feature(us, us.objects.states).features;
+        const TERRITORY_FIPS = new Set(['60','66','69','78']);
+        const mainFeatures = [];
+        let prFeature = null;
+        allFeatures.forEach(f => {
+            if (f.id === '72') { prFeature = f; }
+            else if (!TERRITORY_FIPS.has(f.id)) { mainFeatures.push(f); }
+        });
+
+        buildColorScale();
+
+        function handleMouseMove(event, d, abbr) {
+            const data = getStateYear(abbr, currentYear);
+            const name = STATE_NAMES[abbr] || abbr || 'Unknown';
+            const tip = document.getElementById('tooltip');
+            const fyLabel = currentYear === 'all' ? 'FY2019–2022' : `FY${currentYear}`;
+
+            if (!data || ((data.a || 0) === 0 && (data.l || 0) === 0)) {
+                tip.innerHTML = `<div class="tt-state">${name} <span class="tt-year">&mdash; ${fyLabel}</span></div><div style="color:var(--text-muted)">No SBA disaster loan data</div>`;
+            } else {
+                tip.innerHTML = `
+                    <div class="tt-state">${name} <span class="tt-year">&mdash; ${fyLabel}</span></div>
+                    <div class="tt-row"><span class="tt-label">Total Approved</span><span class="tt-value">${fmtFull$(data.a)}</span></div>
+                    <div class="tt-row"><span class="tt-label">Total Verified Loss</span><span class="tt-value">${fmtFull$(data.l)}</span></div>
+                    <div class="tt-row"><span class="tt-label">Home Loans</span><span class="tt-value">${fmtFull$(data.ha)}</span></div>
+                    <div class="tt-row"><span class="tt-label">Business Loans</span><span class="tt-value">${fmtFull$(data.ba)}</span></div>
+                    <div class="tt-row"><span class="tt-label">Disasters</span><span class="tt-value">${data.d || 0}</span></div>
+                `;
+            }
+
+            const rect = container.getBoundingClientRect();
+            let left = event.clientX - rect.left + 16;
+            let top = event.clientY - rect.top - 10;
+            if (left + 300 > rect.width) left = event.clientX - rect.left - 310;
+            if (top < 0) top = 10;
+            tip.style.left = left + 'px';
+            tip.style.top = top + 'px';
+            tip.style.display = 'block';
+        }
+
+        function handleMouseLeave() {
+            document.getElementById('tooltip').style.display = 'none';
+        }
+
+        svg.selectAll('path.state')
+            .data(mainFeatures)
+            .enter()
+            .append('path')
+            .attr('class', 'state')
+            .attr('d', path)
+            .attr('fill', d => getColor(FIPS_TO_ABBR[d.id]))
+            .on('mousemove', function(event, d) {
+                handleMouseMove(event, d, FIPS_TO_ABBR[d.id]);
+            })
+            .on('mouseleave', handleMouseLeave);
+
+        if (prFeature) {
+            const prProjection = d3.geoMercator()
+                .center([-66.5, 18.2])
+                .scale(3000)
+                .translate([width - 85, height - 15]);
+            const prPath = d3.geoPath().projection(prProjection);
+
+            svg.append('text')
+                .attr('x', width - 85)
+                .attr('y', height - 50)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '11px')
+                .attr('fill', '#64748b')
+                .text('PR');
+
+            svg.append('path')
+                .datum(prFeature)
+                .attr('class', 'state state-pr')
+                .attr('d', prPath)
+                .attr('fill', getColor('PR'))
+                .on('mousemove', function(event) {
+                    handleMouseMove(event, prFeature, 'PR');
+                })
+                .on('mouseleave', handleMouseLeave);
+        }
+
+        svg.append('path')
+            .datum(topojson.mesh(us, us.objects.states, (a, b) => {
+                return a !== b && !TERRITORY_FIPS.has(a.id) && !TERRITORY_FIPS.has(b.id)
+                    && a.id !== '72' && b.id !== '72';
+            }))
+            .attr('fill', 'none')
+            .attr('stroke', 'rgba(255,255,255,0.08)')
+            .attr('stroke-width', 0.8)
+            .attr('d', path);
+
+        renderLegend();
+    }
+
+    function updateMap() {
+        buildColorScale();
+        d3.selectAll('path.state')
+            .transition()
+            .duration(400)
+            .attr('fill', d => {
+                const abbr = FIPS_TO_ABBR[d.id];
+                return getColor(abbr);
+            });
+        renderLegend();
+    }
+
+    // ── Table ──
+    function renderTable() {
+        const fyLabel = currentYear === 'all' ? 'FY2019–2022' : `FY${currentYear}`;
+        document.getElementById('tableTitle').innerHTML = `State Summary &mdash; ${fyLabel}`;
+
+        const rows = [];
+        for (const abbr of Object.keys(MULTIYEAR_DATA)) {
+            const d = getStateYear(abbr, currentYear);
+            if (!d) continue;
+            if ((d.a || 0) === 0 && (d.l || 0) === 0) continue;
+            rows.push({
+                abbr,
+                name: STATE_NAMES[abbr] || abbr,
+                a: d.a || 0,
+                l: d.l || 0,
+                ha: d.ha || 0,
+                ba: d.ba || 0,
+                d: d.d || 0
+            });
+        }
+
+        rows.sort((a, b) => {
+            let va = a[sortCol], vb = b[sortCol];
+            if (sortCol === 'name') {
+                return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+            }
+            return sortAsc ? va - vb : vb - va;
+        });
+
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = rows.map(r => `
+            <tr>
+                <td><span class="state-name">${r.name}</span> <span class="state-abbr">(${r.abbr})</span></td>
+                <td>${fmtFull$(r.a)}</td>
+                <td>${fmtFull$(r.l)}</td>
+                <td>${fmtFull$(r.ha)}</td>
+                <td>${fmtFull$(r.ba)}</td>
+                <td>${r.d}</td>
+            </tr>
+        `).join('');
+    }
+
+    // ── Sorting ──
+    function setupSorting() {
+        document.querySelectorAll('thead th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => {
+                const col = th.dataset.sort;
+                if (sortCol === col) {
+                    sortAsc = !sortAsc;
+                } else {
+                    sortCol = col;
+                    sortAsc = col === 'name';
+                }
+                document.querySelectorAll('.sort-arrow').forEach(a => a.classList.remove('active'));
+                th.querySelector('.sort-arrow').classList.add('active');
+                renderTable();
+            });
+        });
+    }
+
+    // ── Year selector ──
+    function setupYearSelector() {
+        document.querySelectorAll('.year-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const raw = btn.dataset.year;
+                const year = raw === 'all' ? 'all' : parseInt(raw);
+                if (year === currentYear) return;
+                currentYear = year;
+
+                // Update active button
+                document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                // Refresh everything
+                updateSubtitle();
+                renderCards();
+                updateMap();
+                renderTable();
+            });
+        });
+    }
+
+    // ── Refresh all views (for year/metric changes) ──
+    function refreshAll() {
+        updateSubtitle();
+        renderCards();
+        updateMap();
+        renderTable();
+    }
+
+    // ── Init ──
+    async function init() {
+        updateSubtitle();
+        renderCards();
+        renderTable();
+        setupSorting();
+        setupYearSelector();
+
+        document.getElementById('metricSelector').addEventListener('change', function() {
+            currentMetric = this.value;
+            updateMap();
+        });
+
+        document.getElementById('inflationToggle').addEventListener('change', function() {
+            inflationAdjusted = this.checked;
+            document.getElementById('inflationNote').style.display = inflationAdjusted ? 'inline' : 'none';
+            updateSubtitle();
+            renderCards();
+            updateMap();
+            renderTable();
+        });
+
+        try {
+            const us = await d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json');
+            renderMap(us);
+        } catch (err) {
+            document.getElementById('mapLoading').innerHTML =
+                `<p style="color:var(--accent-rose)">Failed to load map data: ${err.message}</p>`;
+        }
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>
