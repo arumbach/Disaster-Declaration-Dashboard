@@ -284,7 +284,7 @@
 
     <div class="container">
         <h1 class="animate" style="animation-delay:0.05s;">Federal Disaster Program Spending</h1>
-        <div class="subtitle animate" style="animation-delay:0.1s;">Fiscal Years 2019&ndash;2022 &middot; Total approved and allocated amounts by program</div>
+        <div class="subtitle animate" style="animation-delay:0.1s;">Total approved and allocated amounts by program &middot; FY2003&ndash;2022</div>
 
         <div class="chart-card animate" style="animation-delay:0.15s;">
 
@@ -303,9 +303,9 @@
             </div>
 
             <div class="source-note">
-                Sources: <a href="https://data.sba.gov/en/dataset/disaster-loan-data" target="_blank">SBA Open Data Portal</a> (Disaster Loan Data, FY2019&ndash;FY2022);
+                Sources: <a href="https://data.sba.gov/en/dataset/disaster-loan-data" target="_blank">SBA Open Data Portal</a> (Disaster Loan Data);
                 <a href="https://carnegieendowment.org/features/disaster-dollar-database" target="_blank">Disaster Dollar Database</a> (Carnegie Endowment for International Peace).
-                SBA figures reflect total approved loan amounts from the SBA Disaster Loan Program. IHP, Public Assistance, and CDBG-DR figures from the Disaster Dollar Database.
+                All figures cover FY2003&ndash;2022. SBA figures reflect total approved loan amounts. IHP, Public Assistance, and CDBG-DR figures from the Disaster Dollar Database.
             </div>
         </div>
     </div>
@@ -314,10 +314,10 @@
 <script>
 (function() {
     const programs = [
-        { name: 'FEMA Public Assistance', value: 26460255726, cls: 'pa' },
-        { name: 'HUD CDBG-DR Allocation', value: 11931947000, cls: 'cdbg' },
-        { name: 'SBA Approved Loans', value: 8196260000, cls: 'sba' },
-        { name: 'FEMA Individual &\nHousehold Program', value: 5574607095, cls: 'ihp' }
+        { name: 'FEMA Public Assistance', value: 158619234829, cls: 'pa' },
+        { name: 'HUD CDBG-DR Allocation', value: 83002193016, cls: 'cdbg' },
+        { name: 'SBA Approved Loans', value: 29249473000, cls: 'sba' },
+        { name: 'FEMA Individual &\nHousehold Program', value: 28477499726, cls: 'ihp' }
     ];
 
     const maxVal = Math.max(...programs.map(p => p.value));
@@ -344,7 +344,7 @@
 
         const label = document.createElement('div');
         label.className = 'bar-label';
-        label.textContent = p.name;
+        label.innerHTML = p.name.replace(/\n/g, '<br>');
 
         const track = document.createElement('div');
         track.className = 'bar-track';

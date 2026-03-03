@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federal Disaster Program Spending — Export</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e1a;
+            color: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        canvas {
+            border-radius: 12px;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .btn-download {
+            margin-top: 24px;
+            background: linear-gradient(135deg, #6366f1, #a78bfa);
+            color: #fff;
+            border: none;
+            padding: 14px 36px;
+            border-radius: 10px;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(99, 102, 241, 0.5);
+        }
+
+        .note {
+            margin-top: 16px;
+            font-size: 13px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="chart" width="1600" height="900"></canvas>
+<button class="btn-download" id="downloadBtn">Download PNG</button>
+<div class="note">Click the button above to save as a PNG image file.</div>
+
+<script>
+document.fonts.ready.then(() => {
+    const canvas = document.getElementById('chart');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+
+    // ── Data ──
+    const programs = [
+        { name: 'FEMA Public Assistance', value: 158619234829, color: 'rgba(99, 102, 241, 0.7)', colorFill: 'rgba(99, 102, 241, 0.45)', colorBorder: 'rgba(99, 102, 241, 0.6)' },
+        { name: 'HUD CDBG-DR Allocation', value: 83002193016, color: 'rgba(167, 139, 250, 0.7)', colorFill: 'rgba(167, 139, 250, 0.45)', colorBorder: 'rgba(167, 139, 250, 0.6)' },
+        { name: 'SBA Approved Loans', value: 29249473000, color: 'rgba(34, 211, 238, 0.7)', colorFill: 'rgba(34, 211, 238, 0.45)', colorBorder: 'rgba(34, 211, 238, 0.6)' },
+        { name: 'FEMA Individual &\nHousehold Program', value: 28477499726, color: 'rgba(16, 185, 129, 0.7)', colorFill: 'rgba(16, 185, 129, 0.45)', colorBorder: 'rgba(16, 185, 129, 0.6)' }
+    ];
+
+    const maxVal = Math.max(...programs.map(p => p.value));
+    const grandTotal = programs.reduce((s, p) => s + p.value, 0);
+
+    function fmtFull(val) {
+        return '$' + Math.round(val).toLocaleString('en-US');
+    }
+
+    // ── Background ──
+    ctx.fillStyle = '#0a0e1a';
+    ctx.fillRect(0, 0, W, H);
+
+    // Grid pattern
+    ctx.strokeStyle = 'rgba(99, 102, 241, 0.04)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < W; x += 60) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let y = 0; y < H; y += 60) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    // ── Card background ──
+    const cardX = 60, cardY = 120, cardW = W - 120, cardH = H - 180;
+    const cardR = 16;
+
+    ctx.fillStyle = 'rgba(17, 24, 39, 0.85)';
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, cardR);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, cardR);
+    ctx.stroke();
+
+    // Top gradient border
+    const grad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY);
+    grad.addColorStop(0, '#6366f1');
+    grad.addColorStop(0.5, '#a78bfa');
+    grad.addColorStop(1, '#22d3ee');
+    ctx.fillStyle = grad;
+    ctx.fillRect(cardX, cardY, cardW, 3);
+
+    // ── Title ──
+    ctx.fillStyle = '#f1f5f9';
+    ctx.font = '700 28px Inter';
+    ctx.textAlign = 'left';
+    ctx.fillText('Federal Disaster Program Spending', cardX + 36, cardY - 30);
+
+    ctx.fillStyle = '#64748b';
+    ctx.font = '400 16px Inter';
+    ctx.fillText('FY2003\u20132022  \u00B7  Total approved and allocated amounts by program', cardX + 36, cardY - 6);
+
+    // ── Legend ──
+    const legendY = cardY + 40;
+    const legendColors = [
+        { label: 'FEMA Public Assistance', c: 'rgba(99, 102, 241, 0.7)' },
+        { label: 'HUD CDBG-DR', c: 'rgba(167, 139, 250, 0.7)' },
+        { label: 'SBA Approved Loans', c: 'rgba(34, 211, 238, 0.7)' },
+        { label: 'FEMA Individual & Household Program', c: 'rgba(16, 185, 129, 0.7)' }
+    ];
+
+    let legendX = cardX + 36;
+    ctx.font = '400 13px Inter';
+    legendColors.forEach(item => {
+        ctx.fillStyle = item.c;
+        ctx.beginPath();
+        ctx.roundRect(legendX, legendY - 8, 12, 12, 2);
+        ctx.fill();
+        legendX += 18;
+
+        ctx.fillStyle = '#64748b';
+        ctx.textAlign = 'left';
+        ctx.fillText(item.label, legendX, legendY + 2);
+        legendX += ctx.measureText(item.label).width + 24;
+    });
+
+    // ── Bars ──
+    const barAreaX = cardX + 280;
+    const barAreaW = cardW - 320;
+    const barStartY = legendY + 50;
+    const barH = 56;
+    const barGap = 24;
+    const labelX = cardX + 260;
+
+    programs.forEach((p, i) => {
+        const y = barStartY + i * (barH + barGap);
+        const pct = p.value / maxVal;
+        const barW = barAreaW * pct;
+
+        // Label
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '500 15px Inter';
+        ctx.textAlign = 'right';
+        const nameLines = p.name.split('\n');
+        if (nameLines.length > 1) {
+            ctx.fillText(nameLines[0], labelX, y + barH / 2 - 4);
+            ctx.fillText(nameLines[1], labelX, y + barH / 2 + 14);
+        } else {
+            ctx.fillText(p.name, labelX, y + barH / 2 + 5);
+        }
+
+        // Track background
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+        ctx.beginPath();
+        ctx.roundRect(barAreaX, y, barAreaW, barH, 8);
+        ctx.fill();
+
+        // Bar fill with gradient
+        const barGrad = ctx.createLinearGradient(barAreaX, y, barAreaX + barW, y);
+        barGrad.addColorStop(0, p.colorFill.replace('0.45', '0.15'));
+        barGrad.addColorStop(1, p.colorFill);
+        ctx.fillStyle = barGrad;
+        ctx.beginPath();
+        ctx.roundRect(barAreaX, y, barW, barH, 8);
+        ctx.fill();
+
+        // Bar border
+        ctx.strokeStyle = p.colorBorder;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.roundRect(barAreaX, y, barW, barH, 8);
+        ctx.stroke();
+
+        // Value text
+        ctx.fillStyle = '#f1f5f9';
+        ctx.font = '700 16px Inter';
+        ctx.textAlign = 'right';
+        const valueText = fmtFull(p.value);
+        const textW = ctx.measureText(valueText).width;
+
+        if (barW > textW + 30) {
+            // Inside bar
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 4;
+            ctx.fillText(valueText, barAreaX + barW - 16, y + barH / 2 + 6);
+            ctx.shadowBlur = 0;
+        } else {
+            // Outside bar
+            ctx.textAlign = 'left';
+            ctx.fillText(valueText, barAreaX + barW + 14, y + barH / 2 + 6);
+        }
+    });
+
+    // ── Total row ──
+    const totalY = barStartY + programs.length * (barH + barGap) + 16;
+
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cardX + 36, totalY);
+    ctx.lineTo(cardX + cardW - 36, totalY);
+    ctx.stroke();
+
+    ctx.fillStyle = '#f1f5f9';
+    ctx.font = '700 16px Inter';
+    ctx.textAlign = 'right';
+    ctx.fillText('Combined Total', labelX, totalY + 34);
+
+    // Gradient text for total value
+    const totalText = fmtFull(grandTotal);
+    ctx.font = '800 24px Inter';
+    ctx.textAlign = 'left';
+    const totalGrad = ctx.createLinearGradient(barAreaX, totalY, barAreaX + 300, totalY);
+    totalGrad.addColorStop(0, '#6366f1');
+    totalGrad.addColorStop(1, '#22d3ee');
+    ctx.fillStyle = totalGrad;
+    ctx.fillText(totalText, barAreaX, totalY + 36);
+
+    // ── Source note ──
+    const sourceY = totalY + 70;
+    ctx.fillStyle = '#64748b';
+    ctx.font = '400 12px Inter';
+    ctx.textAlign = 'left';
+    ctx.fillText('Sources: SBA Open Data Portal (Disaster Loan Data); Disaster Dollar Database (Carnegie Endowment for International Peace).', cardX + 36, sourceY);
+    ctx.fillText('All figures cover FY2003\u20132022. SBA figures reflect total approved loan amounts. IHP, Public Assistance, and CDBG-DR figures from the Disaster Dollar Database.', cardX + 36, sourceY + 18);
+
+    // ── Watermark ──
+    ctx.fillStyle = 'rgba(100, 116, 139, 0.3)';
+    ctx.font = '400 11px Inter';
+    ctx.textAlign = 'right';
+    ctx.fillText('disasterlab.org', W - 70, H - 20);
+
+    // ── Download button ──
+    document.getElementById('downloadBtn').addEventListener('click', () => {
+        const link = document.createElement('a');
+        link.download = 'federal-disaster-program-spending-fy2000-2022.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+});
+</script>
+</body>
+</html>
