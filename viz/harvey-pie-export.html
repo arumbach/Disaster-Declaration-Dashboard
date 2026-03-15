@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hurricane Harvey Recovery Funding &#8212; Nested Donut Chart</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e1a;
+            color: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0 0 4px 0;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #f1f5f9, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        .total-badge {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        .total-badge span {
+            color: #f1f5f9;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        #donut-container {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.6));
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: 16px;
+            padding: 32px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 900px;
+            box-sizing: border-box;
+        }
+
+        #donut-container svg {
+            width: 100%;
+            height: auto;
+        }
+
+        .legend {
+            display: flex;
+            gap: 24px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #94a3b8;
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+
+        .legend-item:hover {
+            color: #f1f5f9;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .source-note {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #475569;
+            text-align: left;
+            max-width: 1000px;
+            line-height: 1.7;
+        }
+
+        .source-note .source-heading {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .source-note dl {
+            margin: 0;
+            display: grid;
+            grid-template-columns: 110px 1fr;
+            gap: 4px 12px;
+        }
+
+        .source-note dt {
+            color: #64748b;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .source-note dd {
+            margin: 0;
+        }
+
+        .source-note .note-footer {
+            margin-top: 10px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .tooltip {
+            position: fixed;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: #e2e8f0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            max-width: 280px;
+        }
+
+        .tooltip .tt-label {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .tooltip .tt-value {
+            color: #22d3ee;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .tooltip .tt-detail {
+            color: #94a3b8;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .tooltip .tt-source {
+            margin-top: 6px;
+            padding-top: 5px;
+            border-top: 1px solid rgba(99, 102, 241, 0.15);
+            font-size: 10px;
+            color: #64748b;
+        }
+
+        .tooltip .tt-source a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+
+        .tooltip .tt-source a:hover {
+            text-decoration: underline;
+        }
+
+        .type-tag {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 4px;
+            vertical-align: middle;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag-loan { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .tag-insurance { background: rgba(244, 114, 182, 0.2); color: #f472b6; }
+        .tag-grant { background: rgba(34, 211, 238, 0.2); color: #22d3ee; }
+        .tag-infra { background: rgba(163, 230, 53, 0.2); color: #a3e635; }
+    </style>
+</head>
+<body>
+
+<h1>Hurricane Harvey Recovery Funding</h1>
+<div class="subtitle">Proportional breakdown of recovery funding sources &mdash; August 2017</div>
+<div class="total-badge">Total identified recovery funding: <span>$86.5 billion</span></div>
+
+<div id="donut-container">
+    <svg id="donut"></svg>
+</div>
+
+<div class="legend">
+    <div class="legend-item" data-index="0"><div class="legend-dot" style="background: #94a3b8;"></div> Federal Government</div>
+    <div class="legend-item" data-index="1"><div class="legend-dot" style="background: #ef4444;"></div> State &amp; Local</div>
+    <div class="legend-item" data-index="2"><div class="legend-dot" style="background: #f472b6;"></div> Private Insurance</div>
+    <div class="legend-item" data-index="3"><div class="legend-dot" style="background: #c084fc;"></div> Charitable Giving</div>
+    <div class="legend-item" data-index="4"><div class="legend-dot" style="background: #fb923c;"></div> Out-of-Pocket</div>
+    <div class="legend-item" data-index="5"><div class="legend-dot" style="background: #2dd4bf;"></div> Other Recovery</div>
+</div>
+
+<div class="source-note">
+    <div class="source-heading">Sources by Data Layer</div>
+    <dl>
+        <dt>FEMA IA</dt>
+        <dd>FEMA Disaster 4332 (DR-4332-TX) Individual &amp; Households Program data, obligations as of April 2023. Includes housing assistance and other needs assistance grants.</dd>
+        <dt>FEMA PA</dt>
+        <dd>FEMA Disaster 4332 Public Assistance obligated amounts. Emergency Work (Categories A&ndash;B) and Permanent Work (Categories C&ndash;G), 90% federal cost share.</dd>
+        <dt>FEMA HMGP</dt>
+        <dd>Hazard Mitigation Grant Program funds made available per FEMA Section 404 allocation ($1.18B authorized; $287M obligated as of 2023).</dd>
+        <dt>NFIP</dt>
+        <dd>National Flood Insurance Program claims paid (~$9B). Congress cancelled $16B in NFIP debt (Oct 2017) to enable continued payouts. Figures from CRS Report IN10784.</dd>
+        <dt>SBA</dt>
+        <dd>SBA disaster loan approvals per Jan 2018 press release. Low-interest loans (not grants): ~1.75&ndash;3.3% interest. Home loans up to $200K property + $40K personal property.</dd>
+        <dt>HUD CDBG-DR</dt>
+        <dd>$5.676B allocated to Texas per HUD Federal Register notices. Program breakdown from Texas GLO Action Plan amendments.</dd>
+        <dt>USACE</dt>
+        <dd>Supplemental appropriations for flood control (Bipartisan Budget Act of 2018). Project figures from USACE Civil Works funding announcements, July 2018.</dd>
+        <dt>USDA</dt>
+        <dd>D-SNAP benefits ($467M) per Texas HHSC and CBPP; early SNAP issuance ($160M) to 600,000+ existing recipients. NRCS Emergency Watershed Protection ($85M).</dd>
+        <dt>Other Federal</dt>
+        <dd>Dept. of Education ($174M), FHWA ($100M), DOL ($66M), EDA ($28M), FTA ($23M), HHS ($14M).</dd>
+        <dt>Texas State</dt>
+        <dd>~$3B from Economic Stabilization Fund (SB 500, 86th Legislature) and General Revenue across 71 agencies.</dd>
+        <dt>Harris County</dt>
+        <dd>$2.5B flood bond (Proposition A, Aug 2018, 85% voter approval). 109+ projects completed.</dd>
+        <dt>Private Insurance</dt>
+        <dd>Non-NFIP private insurer claims paid, estimated ~$10B (AIR Worldwide). 670,000+ total claims filed.</dd>
+        <dt>Charitable</dt>
+        <dd>~$1B raised across 32+ major aid organizations. Red Cross ($525M), GHCF ($114M), Rebuild Texas Fund ($100M), and others.</dd>
+        <dt>Out-of-Pocket</dt>
+        <dd>Estimated from gap between total damage ($125B, NOAA) and formally tracked recovery funding. Only ~20% of homeowners had flood insurance.</dd>
+        <dt>Utilities</dt>
+        <dd>Electric utility restoration $520M+ per S&amp;P Global: AEP Texas (~$380M), CenterPoint ($64M), Entergy Texas.</dd>
+        <dt>Healthcare</dt>
+        <dd>Texas Hospital Association survey of 92 hospitals: $380M capital/operating, $40M uncompensated care, $40M other costs.</dd>
+        <dt>Faith-Based</dt>
+        <dd>Texas Impact report: $211M documented from 23 of 40 surveyed organizations.</dd>
+        <dt>Environmental</dt>
+        <dd>EPA-ordered $155M cleanup at San Jacinto River Waste Pits Superfund site.</dd>
+        <dt>Agricultural</dt>
+        <dd>Texas A&amp;M estimate $200M+ total crop/livestock losses; ~$150M net after USDA crop insurance offsets.</dd>
+        <dt>Foreign Aid</dt>
+        <dd>Qatar pledged $30M (largest foreign offer). Venezuela offered $5M via Citgo.</dd>
+    </dl>
+    <div class="note-footer">All figures in nominal dollars. SBA figures are subsidized loans, not grants. NFIP figures are insurance claims paid from the federal flood insurance program. Out-of-pocket figures are estimates derived from gap analysis between total damage and tracked funding.</div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+
+// ── Data ──────────────────────────────────────────────────────────
+const data = [
+    {
+        name: 'Federal Government', value: 28.218, color: '#94a3b8',
+        children: [
+            { name: 'FEMA',          value: 14.024, color: '#6366f1' },
+            { name: 'HUD',           value: 5.676,  color: '#10b981' },
+            { name: 'USACE',         value: 4.396,  color: '#f59e0b' },
+            { name: 'SBA',           value: 3.005,  color: '#22d3ee' },
+            { name: 'USDA',          value: 0.712,  color: '#84cc16' },
+            { name: 'Other Federal', value: 0.405,  color: '#38bdf8' }
+        ]
+    },
+    {
+        name: 'State & Local Gov', value: 5.65, color: '#ef4444',
+        children: [
+            { name: 'Texas State',     value: 3.0,  color: '#ef4444' },
+            { name: 'Harris County',   value: 2.5,  color: '#f87171' },
+            { name: 'Other Local Gov', value: 0.15, color: '#fca5a5' }
+        ]
+    },
+    {
+        name: 'Private Insurance', value: 10.0, color: '#f472b6',
+        children: [
+            { name: 'Commercial Property',  value: 3.5, color: '#ec4899' },
+            { name: 'Auto Claims',          value: 3.3, color: '#f472b6' },
+            { name: 'Residential Property', value: 2.7, color: '#f9a8d4' },
+            { name: 'Other Private Claims', value: 0.5, color: '#fce7f3' }
+        ]
+    },
+    {
+        name: 'Charitable Giving', value: 1.067, color: '#c084fc',
+        children: [
+            { name: 'American Red Cross', value: 0.525, color: '#c084fc' },
+            { name: 'Other Nonprofits',   value: 0.328, color: '#a855f7' },
+            { name: 'Recovery Funds',     value: 0.214, color: '#e9d5ff' }
+        ]
+    },
+    {
+        name: 'Out-of-Pocket Recovery', value: 40.0, color: '#fb923c',
+        children: [
+            { name: 'Homeowner Costs', value: 30.0, color: '#fb923c' },
+            { name: 'Business Costs',  value: 10.0, color: '#fdba74' }
+        ]
+    },
+    {
+        name: 'Other Recovery Costs', value: 1.531, color: '#2dd4bf',
+        children: [
+            { name: 'Utility Restoration',  value: 0.52,  color: '#2dd4bf' },
+            { name: 'Healthcare System',     value: 0.46,  color: '#5eead4' },
+            { name: 'Faith-Based Orgs',      value: 0.211, color: '#99f6e4' },
+            { name: 'Environmental Cleanup', value: 0.155, color: '#14b8a6' },
+            { name: 'Agricultural Recovery', value: 0.15,  color: '#0d9488' },
+            { name: 'Foreign Aid',           value: 0.035, color: '#ccfbf1' }
+        ]
+    }
+];
+
+const TOTAL = 86.466;
+
+// ── Node metadata (from Sankey) ───────────────────────────────────
+const nodeMeta = {
+    'Federal Government':    { desc: 'Total identified federal disaster recovery spending for Hurricane Harvey', agency: 'FED' },
+    'FEMA':                  { desc: 'Federal Emergency Management Agency', type: 'grant', agency: 'FEMA' },
+    'SBA':                   { desc: 'Small Business Administration', type: 'loan', agency: 'SBA' },
+    'HUD':                   { desc: 'Dept. of Housing & Urban Development', type: 'grant', agency: 'HUD' },
+    'USACE':                 { desc: 'U.S. Army Corps of Engineers', type: 'infra', agency: 'USACE' },
+    'USDA':                  { desc: 'U.S. Department of Agriculture', type: 'grant', agency: 'USDA' },
+    'Other Federal':         { desc: 'Dept. of Education, FHWA, DOL, EDA, FTA, and HHS', agency: 'OTHER_FED' },
+    'State & Local Gov':     { desc: 'Texas state government, Harris County, and other local governments', agency: 'STATE' },
+    'Texas State':           { desc: 'Funded from Economic Stabilization Fund (Rainy Day Fund) and General Revenue', agency: 'STATE' },
+    'Harris County':         { desc: '$2.5B flood bond approved Aug 2018 with 85% voter approval', agency: 'STATE' },
+    'Other Local Gov':       { desc: 'City of Houston debris removal match, other county emergency response costs', agency: 'STATE' },
+    'Private Insurance':     { desc: 'Private insurer claims paid (non-NFIP), per Texas Dept. of Insurance', type: 'insurance', agency: 'INSURANCE' },
+    'Commercial Property':   { desc: '37,000 commercial property claims, avg. ~$95,000', type: 'insurance', agency: 'INSURANCE' },
+    'Auto Claims':           { desc: '203,000 vehicle claims, avg. $16K\u2013$20K; 65% total losses', type: 'insurance', agency: 'INSURANCE' },
+    'Residential Property':  { desc: '354,000 residential property claims, avg. ~$7,600', type: 'insurance', agency: 'INSURANCE' },
+    'Other Private Claims':  { desc: 'Inland marine, business interruption, and other private coverage', type: 'insurance', agency: 'INSURANCE' },
+    'Charitable Giving':     { desc: 'Donations from individuals, corporations, and foundations', type: 'grant', agency: 'CHARITY' },
+    'American Red Cross':    { desc: '$525M raised; 575,000 households received $400 emergency stipends', type: 'grant', agency: 'CHARITY' },
+    'Other Nonprofits':      { desc: "Samaritan's Purse, Salvation Army, United Way, J.J. Watt Foundation, and others", type: 'grant', agency: 'CHARITY' },
+    'Recovery Funds':        { desc: 'GHCF Hurricane Harvey Relief Fund ($114M) + Rebuild Texas Fund ($100M)', type: 'grant', agency: 'CHARITY' },
+    'Out-of-Pocket Recovery': { desc: 'Estimated uninsured self-funded recovery costs by households and businesses', agency: 'OUT_OF_POCKET' },
+    'Homeowner Costs':       { desc: 'Only 20% of homeowners had flood insurance; FEMA grants averaged ~$8,900 against ~$115K avg. damage', agency: 'OUT_OF_POCKET' },
+    'Business Costs':        { desc: '58% of businesses reported uninsured physical losses (Dallas Fed)', agency: 'OUT_OF_POCKET' },
+    'Other Recovery Costs':  { desc: 'Utility, healthcare, faith-based, environmental, agricultural, and foreign aid', agency: 'OTHER' },
+    'Utility Restoration':   { desc: 'CenterPoint, AEP Texas, Entergy grid restoration plus water/sewer repairs', type: 'infra', agency: 'OTHER' },
+    'Healthcare System':     { desc: 'Hospital damage ($380M capital), uncompensated care, mental health (THA)', agency: 'OTHER' },
+    'Faith-Based Orgs':      { desc: 'Southern Baptists, Catholic Charities, local congregations (Texas Impact)', type: 'grant', agency: 'OTHER' },
+    'Environmental Cleanup': { desc: 'EPA $155M remediation at San Jacinto Superfund site', type: 'infra', agency: 'OTHER' },
+    'Agricultural Recovery': { desc: 'Uninsured crop/livestock losses after USDA crop insurance (Texas A&M)', agency: 'OTHER' },
+    'Foreign Aid':           { desc: 'Qatar pledged $30M; Venezuela/Citgo offered $5M', type: 'grant', agency: 'OTHER' }
+};
+
+// ── Source citations ──────────────────────────────────────────────
+const sourceInfo = {
+    'Federal Government':    { cite: 'Aggregate of federal agency totals' },
+    'FEMA':                  { cite: 'FEMA Disaster 4332', url: 'https://www.fema.gov/disaster/4332' },
+    'SBA':                   { cite: 'SBA ODA, Jan 2018' },
+    'HUD':                   { cite: 'Texas GLO Action Plan', url: 'https://recovery.texas.gov/' },
+    'USACE':                 { cite: 'USACE Civil Works, 2018' },
+    'USDA':                  { cite: 'CBPP / Texas HHSC' },
+    'Other Federal':         { cite: 'Multiple agency reports' },
+    'State & Local Gov':     { cite: 'Aggregate of state/local totals' },
+    'Texas State':           { cite: 'TX Comptroller / LBB', url: 'https://comptroller.texas.gov/economy/fiscal-notes/archive/2018/special-edition/impact.php' },
+    'Harris County':         { cite: 'HCFCD Bond Program', url: 'https://www.hcfcd.org/bond-program' },
+    'Other Local Gov':       { cite: 'City/County records' },
+    'Private Insurance':     { cite: 'AIR Worldwide / TX DOI' },
+    'Commercial Property':   { cite: 'TX DOI Data Call, 2019' },
+    'Auto Claims':           { cite: 'TX DOI Data Call, 2019' },
+    'Residential Property':  { cite: 'TX DOI Data Call, 2019' },
+    'Other Private Claims':  { cite: 'TX DOI Data Call, 2019' },
+    'Charitable Giving':     { cite: 'Charity Navigator / TX Tribune' },
+    'American Red Cross':    { cite: 'Red Cross Two-Year Report' },
+    'Other Nonprofits':      { cite: 'Charity Navigator' },
+    'Recovery Funds':        { cite: 'GHCF / Dell Foundation' },
+    'Out-of-Pocket Recovery': { cite: 'Gap estimate: NOAA / Wharton / Dallas Fed' },
+    'Homeowner Costs':       { cite: 'Kinder Institute / Rice', url: 'https://kinder.rice.edu/urbanedge' },
+    'Business Costs':        { cite: 'Dallas Fed Surveys, 2017', url: 'https://www.dallasfed.org/research/economics/2017/1017' },
+    'Other Recovery Costs':  { cite: 'Aggregate of sector totals' },
+    'Utility Restoration':   { cite: 'S&P Global, Aug 2018' },
+    'Healthcare System':     { cite: 'TX Hospital Association' },
+    'Faith-Based Orgs':      { cite: 'Texas Impact Report', url: 'https://texasimpact.org/' },
+    'Environmental Cleanup': { cite: 'EPA / UPI, Oct 2017' },
+    'Agricultural Recovery': { cite: 'TX A&M / TX Farm Bureau' },
+    'Foreign Aid':           { cite: 'Washington Post / Fortune' }
+};
+
+// ── Flatten outer ring data ───────────────────────────────────────
+const outerData = [];
+data.forEach((parent, i) => {
+    parent.children.forEach(child => {
+        outerData.push({ ...child, parentIndex: i, parentName: parent.name, parentColor: parent.color });
+    });
+});
+
+// ── Minimum angle enforcement for outer ring ──────────────────────
+const MIN_DEG = 2.5;
+const MIN_RAD = MIN_DEG * Math.PI / 180;
+
+function enforceMinAngles(items) {
+    const total = items.reduce((s, d) => s + d.value, 0);
+    const natural = items.map(d => (d.value / total) * 2 * Math.PI);
+    const needsMin = natural.map(a => a < MIN_RAD);
+    const stolen = needsMin.reduce((s, need, i) => s + (need ? MIN_RAD - natural[i] : 0), 0);
+    const bigTotal = natural.reduce((s, a, i) => s + (needsMin[i] ? 0 : a), 0);
+
+    return items.map((d, i) => {
+        if (needsMin[i]) return { ...d, adjustedValue: MIN_RAD };
+        const shrink = bigTotal > 0 ? (natural[i] / bigTotal) * stolen : 0;
+        return { ...d, adjustedValue: natural[i] - shrink };
+    });
+}
+
+const adjustedOuter = enforceMinAngles(outerData);
+
+// ── Dimensions ────────────────────────────────────────────────────
+const size = 800;
+const cx = size / 2, cy = size / 2;
+
+const innerR0 = 160, innerR1 = 230;
+const outerR0 = 245, outerR1 = 330;
+
+// ── Arc & Pie generators ──────────────────────────────────────────
+const arcInner = d3.arc().innerRadius(innerR0).outerRadius(innerR1).cornerRadius(4);
+const arcOuter = d3.arc().innerRadius(outerR0).outerRadius(outerR1).cornerRadius(3);
+const arcInnerHover = d3.arc().innerRadius(innerR0).outerRadius(innerR1 + 8).cornerRadius(4);
+const arcOuterHover = d3.arc().innerRadius(outerR0).outerRadius(outerR1 + 8).cornerRadius(3);
+
+const pieInner = d3.pie().value(d => d.value).sort(null).padAngle(0.02);
+const pieOuter = d3.pie().value(d => d.adjustedValue).sort(null).padAngle(0.01);
+
+const innerArcs = pieInner(data);
+const outerArcs = pieOuter(adjustedOuter);
+
+// ── SVG ───────────────────────────────────────────────────────────
+const svg = d3.select('#donut')
+    .attr('viewBox', `0 0 ${size} ${size}`)
+    .append('g')
+    .attr('transform', `translate(${cx},${cy})`);
+
+// ── Tooltip system ────────────────────────────────────────────────
+const tooltip = d3.select('#tooltip');
+let hideTimer;
+
+function showTooltip(evt, html, interactive) {
+    clearTimeout(hideTimer);
+    tooltip.html(html)
+        .style('opacity', 1)
+        .style('left', (evt.clientX + 16) + 'px')
+        .style('top', (evt.clientY - 10) + 'px')
+        .style('pointer-events', interactive ? 'auto' : 'none');
+}
+
+function hideTooltip() {
+    clearTimeout(hideTimer);
+    tooltip.style('opacity', 0).style('pointer-events', 'none');
+}
+
+function scheduleHide(delay) {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(hideTooltip, delay);
+}
+
+tooltip.on('mouseenter', () => clearTimeout(hideTimer))
+       .on('mouseleave', () => hideTooltip());
+
+function sourceLine(name) {
+    const si = sourceInfo[name] || {};
+    if (!si.cite) return '';
+    return si.url
+        ? `<div class="tt-source"><a href="${si.url}" target="_blank" rel="noopener">${si.cite} \u2197</a></div>`
+        : `<div class="tt-source">${si.cite}</div>`;
+}
+
+function formatValue(v) {
+    if (v >= 1) return '$' + v.toFixed(2) + 'B';
+    return '$' + (v * 1000).toFixed(0) + 'M';
+}
+
+function typeTag(type) {
+    const labels = { loan: 'Loan', insurance: 'Insurance', grant: 'Grant', infra: 'Infrastructure' };
+    return `<span class="type-tag tag-${type}">${labels[type]}</span>`;
+}
+
+// ── Hover handlers ────────────────────────────────────────────────
+function handleInnerHover(evt, d) {
+    const idx = d.index;
+    d3.selectAll('.inner-slice').transition().duration(150)
+        .attr('opacity', dd => dd.index === idx ? 1 : 0.3);
+    d3.selectAll('.outer-slice').transition().duration(150)
+        .attr('opacity', dd => dd.data.parentIndex === idx ? 1 : 0.3);
+    d3.select(this).transition().duration(150).attr('d', arcInnerHover);
+
+    const meta = nodeMeta[d.data.name] || {};
+    const pct = ((d.data.value / TOTAL) * 100).toFixed(1);
+    showTooltip(evt, `
+        <div class="tt-label">${d.data.name} ${meta.type ? typeTag(meta.type) : ''}</div>
+        <div class="tt-value">${formatValue(d.data.value)}</div>
+        <div class="tt-detail">${pct}% of total${meta.desc ? ' &mdash; ' + meta.desc : ''}</div>
+        ${sourceLine(d.data.name)}
+    `, true);
+}
+
+function handleOuterHover(evt, d) {
+    const pIdx = d.data.parentIndex;
+    d3.selectAll('.outer-slice').transition().duration(150)
+        .attr('opacity', dd => dd.index === d.index ? 1 : 0.3);
+    d3.selectAll('.inner-slice').transition().duration(150)
+        .attr('opacity', dd => dd.index === pIdx ? 1 : 0.3);
+    d3.select(this).transition().duration(150).attr('d', arcOuterHover);
+
+    const meta = nodeMeta[d.data.name] || {};
+    const pct = ((d.data.value / TOTAL) * 100).toFixed(1);
+    const parentPct = ((d.data.value / data[pIdx].value) * 100).toFixed(1);
+    showTooltip(evt, `
+        <div class="tt-detail" style="margin-bottom:2px;color:#64748b;">${d.data.parentName}</div>
+        <div class="tt-label">${d.data.name} ${meta.type ? typeTag(meta.type) : ''}</div>
+        <div class="tt-value">${formatValue(d.data.value)}</div>
+        <div class="tt-detail">${pct}% of total &middot; ${parentPct}% of ${d.data.parentName}${meta.desc ? '<br>' + meta.desc : ''}</div>
+        ${sourceLine(d.data.name)}
+    `, true);
+}
+
+function handleMouseOut() {
+    d3.selectAll('.donut-slice').transition().duration(200).attr('opacity', 1);
+    d3.selectAll('.inner-slice').transition().duration(200).attr('d', arcInner);
+    d3.selectAll('.outer-slice').transition().duration(200).attr('d', arcOuter);
+    scheduleHide(800);
+}
+
+// ── Draw inner ring ───────────────────────────────────────────────
+const innerPaths = svg.selectAll('.inner-slice')
+    .data(innerArcs)
+    .join('path')
+    .attr('class', 'donut-slice inner-slice')
+    .attr('fill', d => d.data.color)
+    .attr('stroke', '#0a0e1a')
+    .attr('stroke-width', 1.5)
+    .attr('opacity', 1)
+    .style('cursor', 'pointer')
+    .on('mouseover', handleInnerHover)
+    .on('mouseout', handleMouseOut);
+
+// ── Draw outer ring ───────────────────────────────────────────────
+const outerPaths = svg.selectAll('.outer-slice')
+    .data(outerArcs)
+    .join('path')
+    .attr('class', 'donut-slice outer-slice')
+    .attr('fill', d => d.data.color)
+    .attr('stroke', '#0a0e1a')
+    .attr('stroke-width', 1)
+    .attr('opacity', 1)
+    .style('cursor', 'pointer')
+    .on('mouseover', handleOuterHover)
+    .on('mouseout', handleMouseOut);
+
+// ── Center text ───────────────────────────────────────────────────
+svg.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('y', -14)
+    .attr('fill', '#64748b')
+    .attr('font-size', '14px')
+    .attr('font-weight', '500')
+    .attr('font-family', 'Inter, sans-serif')
+    .text('Total Recovery Funding');
+
+svg.append('text')
+    .attr('text-anchor', 'middle')
+    .attr('y', 20)
+    .attr('fill', '#f1f5f9')
+    .attr('font-size', '26px')
+    .attr('font-weight', '800')
+    .attr('font-family', 'Inter, sans-serif')
+    .text('$86.5 billion');
+
+// ── Load animation ────────────────────────────────────────────────
+innerPaths
+    .attr('d', d => arcInner({ ...d, endAngle: d.startAngle }))
+    .transition()
+    .duration(800)
+    .delay((d, i) => i * 100)
+    .attrTween('d', function(d) {
+        const interp = d3.interpolate({ ...d, endAngle: d.startAngle }, d);
+        return t => arcInner(interp(t));
+    });
+
+outerPaths
+    .attr('d', d => arcOuter({ ...d, endAngle: d.startAngle }))
+    .transition()
+    .duration(600)
+    .delay((d, i) => 700 + i * 25)
+    .attrTween('d', function(d) {
+        const interp = d3.interpolate({ ...d, endAngle: d.startAngle }, d);
+        return t => arcOuter(interp(t));
+    });
+
+// ── Legend interactivity ──────────────────────────────────────────
+d3.selectAll('.legend-item').on('mouseenter', function() {
+    const idx = +this.dataset.index;
+    d3.selectAll('.inner-slice').transition().duration(150)
+        .attr('opacity', dd => dd.index === idx ? 1 : 0.3);
+    d3.selectAll('.outer-slice').transition().duration(150)
+        .attr('opacity', dd => dd.data.parentIndex === idx ? 1 : 0.3);
+    d3.selectAll('.inner-slice').filter(dd => dd.index === idx)
+        .transition().duration(150).attr('d', arcInnerHover);
+}).on('mouseleave', function() {
+    d3.selectAll('.donut-slice').transition().duration(200).attr('opacity', 1);
+    d3.selectAll('.inner-slice').transition().duration(200).attr('d', arcInner);
+});
+
+</script>
+</body>
+</html>
