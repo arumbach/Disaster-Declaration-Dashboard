@@ -1,0 +1,848 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hurricane Harvey Recovery Funding &#8212; Sankey Diagram</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e1a;
+            color: #f1f5f9;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 20px;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin: 0 0 4px 0;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #f1f5f9, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 15px;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 400;
+        }
+
+        .total-badge {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-bottom: 24px;
+            font-weight: 500;
+        }
+
+        .total-badge span {
+            color: #f1f5f9;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        #sankey-container {
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.6));
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: 16px;
+            padding: 32px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 1540px;
+            box-sizing: border-box;
+        }
+
+        #sankey-container svg {
+            width: 100%;
+            height: auto;
+        }
+
+        .sankey-link:hover {
+            stroke-opacity: 0.5 !important;
+        }
+
+        .node-label {
+            font-family: 'Inter', sans-serif;
+            fill: #e2e8f0;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .node-value {
+            font-family: 'Inter', sans-serif;
+            fill: #94a3b8;
+            font-size: 10px;
+            font-weight: 400;
+        }
+
+        .column-header {
+            font-family: 'Inter', sans-serif;
+            fill: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 24px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        .source-note {
+            margin-top: 20px;
+            font-size: 11px;
+            color: #475569;
+            text-align: left;
+            max-width: 1000px;
+            line-height: 1.7;
+        }
+
+        .source-note .source-heading {
+            color: #64748b;
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .source-note dl {
+            margin: 0;
+            display: grid;
+            grid-template-columns: 110px 1fr;
+            gap: 4px 12px;
+        }
+
+        .source-note dt {
+            color: #64748b;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .source-note dd {
+            margin: 0;
+        }
+
+        .source-note .note-footer {
+            margin-top: 10px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        .tooltip {
+            position: fixed;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            color: #e2e8f0;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+            max-width: 280px;
+        }
+
+        .tooltip .tt-label {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .tooltip .tt-value {
+            color: #22d3ee;
+            font-weight: 700;
+            font-size: 15px;
+        }
+
+        .tooltip .tt-detail {
+            color: #94a3b8;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        .tooltip .tt-source {
+            margin-top: 6px;
+            padding-top: 5px;
+            border-top: 1px solid rgba(99, 102, 241, 0.15);
+            font-size: 10px;
+            color: #64748b;
+        }
+
+        .tooltip .tt-source a {
+            color: #818cf8;
+            text-decoration: none;
+        }
+
+        .tooltip .tt-source a:hover {
+            text-decoration: underline;
+        }
+
+        .type-tag {
+            display: inline-block;
+            font-size: 9px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 4px;
+            vertical-align: middle;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag-loan { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        .tag-insurance { background: rgba(244, 114, 182, 0.2); color: #f472b6; }
+        .tag-grant { background: rgba(34, 211, 238, 0.2); color: #22d3ee; }
+        .tag-infra { background: rgba(163, 230, 53, 0.2); color: #a3e635; }
+    </style>
+</head>
+<body>
+
+<h1>Hurricane Harvey Recovery Funding</h1>
+<div class="subtitle">Federal, state, private, charitable, and self-funded recovery flows &mdash; August 2017</div>
+<div class="total-badge">Total identified recovery funding: <span>$86.5 billion</span></div>
+
+<div id="sankey-container">
+    <svg id="sankey"></svg>
+</div>
+
+<div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background: #6366f1;"></div> FEMA</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #22d3ee;"></div> SBA</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #10b981;"></div> HUD</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #f59e0b;"></div> USACE</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #84cc16;"></div> USDA</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #38bdf8;"></div> Other Federal</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #ef4444;"></div> State & Local</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #f472b6;"></div> Private Insurance</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #c084fc;"></div> Charitable Giving</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #fb923c;"></div> Out-of-Pocket</div>
+    <div class="legend-item"><div class="legend-dot" style="background: #2dd4bf;"></div> Other Recovery</div>
+</div>
+
+<div class="source-note">
+    <div class="source-heading">Sources by Data Layer</div>
+    <dl>
+        <dt>FEMA IA</dt>
+        <dd>FEMA Disaster 4332 (DR-4332-TX) Individual &amp; Households Program data, obligations as of April 2023. Includes housing assistance and other needs assistance grants.</dd>
+        <dt>FEMA PA</dt>
+        <dd>FEMA Disaster 4332 Public Assistance obligated amounts. Emergency Work (Categories A&ndash;B) and Permanent Work (Categories C&ndash;G), 90% federal cost share.</dd>
+        <dt>FEMA HMGP</dt>
+        <dd>Hazard Mitigation Grant Program funds made available per FEMA Section 404 allocation ($1.18B authorized; $287M obligated as of 2023).</dd>
+        <dt>NFIP</dt>
+        <dd>National Flood Insurance Program claims paid (~$9B). Congress cancelled $16B in NFIP debt (Oct 2017) to enable continued payouts. Figures from CRS Report IN10784.</dd>
+        <dt>SBA</dt>
+        <dd>SBA disaster loan approvals per Jan 2018 press release. Low-interest loans (not grants): ~1.75&ndash;3.3% interest. Home loans up to $200K property + $40K personal property.</dd>
+        <dt>HUD CDBG-DR</dt>
+        <dd>$5.676B allocated to Texas per HUD Federal Register notices. Program breakdown from Texas GLO Action Plan amendments. Local allocations include Harris County ($896M) and City of Houston ($1.28B).</dd>
+        <dt>USACE</dt>
+        <dd>Supplemental appropriations for flood control (Bipartisan Budget Act of 2018). Project figures from USACE Civil Works funding announcements, July 2018.</dd>
+        <dt>USDA</dt>
+        <dd>D-SNAP benefits ($467M) per Texas HHSC and CBPP; early SNAP issuance ($160M) to 600,000+ existing recipients. NRCS Emergency Watershed Protection ($85M) for Harris County Flood Control District repairs over three years.</dd>
+        <dt>Other Federal</dt>
+        <dd>Dept. of Education Temporary Emergency Impact Aid ($174M) for 300+ affected school districts. FHWA Emergency Relief ($100M) for road/bridge repair. DOL Dislocated Worker Grants ($36M) + DUA (~$30M). EDA disaster supplemental grants (~$28M identified) from $587M shared 2017 disaster pool. FTA transit relief ($23.3M). HHS/FEMA crisis counseling ($13.9M, Texans Recovering Together).</dd>
+        <dt>Texas State</dt>
+        <dd>~$3B from Economic Stabilization Fund (SB 500, 86th Legislature): Flood Infrastructure Fund ($793M via TWDB), TX Infrastructure Resiliency Fund ($857M), FEMA PA 10% match ($335M), HMGP 25% match ($273M), DPS operations ($97M), HHSC Medicaid ($110M), higher ed repairs ($132M), GLO coastal ($200M). Pre-2019 agency spending (~$500M) from General Revenue across 71 agencies (LBB Fiscal Impact Report).</dd>
+        <dt>Harris County</dt>
+        <dd>$2.5B flood bond (Proposition A, Aug 2018, 85% voter approval). $1.74B for direct local projects, remainder for federal match leverage. 109+ projects completed. Property tax-backed at $0.031/$100 TAV. Source: HCFCD 2018 Bond Program.</dd>
+        <dt>Other Local</dt>
+        <dd>City of Houston debris removal match (~$25M), other county FEMA PA local share, and unreimbursed emergency response costs. City/county-level spending is partially obscured by federal reimbursements.</dd>
+        <dt>Private Insurance</dt>
+        <dd>Non-NFIP private insurer claims paid, estimated ~$10B (AIR Worldwide). Claim counts and averages from Texas Dept. of Insurance Data Call (June 2019). 670,000+ total claims filed. Only ~15% of Harris County homes had flood insurance.</dd>
+        <dt>Charitable</dt>
+        <dd>~$1B raised across 32+ major aid organizations (Charity Navigator, Texas Tribune). Red Cross breakdown from two-year progress report. Recovery Funds include GHCF Hurricane Harvey Relief Fund ($114M, 127,000 donors) and Dell Foundation Rebuild Texas Fund ($100M, 41 counties). Other nonprofits include Samaritan's Purse ($86M), Salvation Army ($30M), United Way ($44M), J.J. Watt Foundation ($42M).</dd>
+        <dt>Out-of-Pocket</dt>
+        <dd>Estimated from gap between total damage ($125B, NOAA) and formally tracked recovery funding. Only ~20% of homeowners had flood insurance (Wharton); FEMA grants averaged ~$8,900 against ~$115K avg. damage (Kinder Institute/Rice). 58% of businesses had uninsured physical losses (Dallas Fed). Figures are mid-range estimates of actual self-funded spending.</dd>
+        <dt>Utilities</dt>
+        <dd>Electric utility restoration $520M+ per S&amp;P Global: AEP Texas (~$380M), CenterPoint ($64M), Entergy Texas. 800+ wastewater treatment facilities flooded; water/sewer costs partially included.</dd>
+        <dt>Healthcare</dt>
+        <dd>Texas Hospital Association survey of 92 hospitals: $380M capital/operating, $40M uncompensated care, $40M other costs. LBJ General closed 133 of 179 beds. PTSD rates increased 6x among adults; only 8% of affected residents received mental health services.</dd>
+        <dt>Faith-Based</dt>
+        <dd>Texas Impact &ldquo;Time &amp; Treasure&rdquo; report: $211M documented from 23 of 40 surveyed organizations. Southern Baptists: 2.2M meals, 2,600 properties cleared. Potential partial overlap with charitable giving totals.</dd>
+        <dt>Environmental</dt>
+        <dd>EPA-ordered $155M cleanup at San Jacinto River Waste Pits Superfund site. 13 of 41 regional Superfund sites flooded; 40+ sites released hazardous pollutants.</dd>
+        <dt>Agricultural</dt>
+        <dd>Texas A&amp;M estimate $200M+ total crop/livestock losses; ~$150M net after USDA crop insurance offsets. Cotton ($100M, 200K bales lost), livestock ($93M), rice/soybeans ($8M).</dd>
+        <dt>Foreign Aid</dt>
+        <dd>Qatar pledged $30M (largest foreign offer). Venezuela offered $5M via Citgo. Mexico offered $1M but rescinded due to own earthquake. Notably smaller international response than post-Katrina.</dd>
+    </dl>
+    <div class="note-footer">All figures in nominal dollars. SBA figures are subsidized loans, not grants. NFIP figures are insurance claims paid from the federal flood insurance program. Private insurance figures are separate non-NFIP claims. Out-of-pocket figures are estimates derived from gap analysis between total damage and tracked funding. Total economic damage estimated at $125B (NOAA); an estimated 70% of flood damage was uninsured.</div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+<script>
+
+const agencyColors = {
+    'FED':       '#94a3b8',
+    'FEMA':      '#6366f1',
+    'SBA':       '#22d3ee',
+    'HUD':       '#10b981',
+    'USACE':     '#f59e0b',
+    'USDA':      '#84cc16',
+    'OTHER_FED': '#38bdf8',
+    'STATE':     '#ef4444',
+    'INSURANCE':     '#f472b6',
+    'CHARITY':       '#c084fc',
+    'OUT_OF_POCKET': '#fb923c',
+    'OTHER':         '#2dd4bf'
+};
+
+// Node metadata for tooltips and type tags
+const nodeMeta = {
+    'Federal Government':    { desc: 'Total identified federal disaster recovery spending for Hurricane Harvey', agency: 'FED' },
+    'Private Insurance':     { desc: 'Private insurer claims paid (non-NFIP), per Texas Dept. of Insurance', type: 'insurance', agency: 'INSURANCE' },
+    'Charitable Giving':     { desc: 'Donations from individuals, corporations, and foundations', type: 'grant', agency: 'CHARITY' },
+    'Residential Property':  { desc: '354,000 residential property claims, avg. ~$7,600 (wind/hail, excludes flood)', type: 'insurance', agency: 'INSURANCE' },
+    'Commercial Property':   { desc: '37,000 commercial property claims, avg. ~$95,000', type: 'insurance', agency: 'INSURANCE' },
+    'Auto Claims':           { desc: '203,000 vehicle claims, avg. $16K\u2013$20K; 65% total losses', type: 'insurance', agency: 'INSURANCE' },
+    'Other Private Claims':  { desc: 'Inland marine, business interruption, and other private coverage', type: 'insurance', agency: 'INSURANCE' },
+    'American Red Cross':    { desc: '$525M raised; 575,000 households received $400 emergency stipends', type: 'grant', agency: 'CHARITY' },
+    'Recovery Funds':        { desc: 'GHCF Hurricane Harvey Relief Fund ($114M) + Rebuild Texas Fund ($100M, Dell Foundation)', type: 'grant', agency: 'CHARITY' },
+    'Other Nonprofits':      { desc: "Samaritan's Purse, Salvation Army, United Way, J.J. Watt Foundation, One America Appeal, and others", type: 'grant', agency: 'CHARITY' },
+    'Direct Financial Aid':  { desc: 'Emergency stipends, rental assistance, and cash grants to survivors', type: 'grant', agency: 'CHARITY' },
+    'Recovery & Rebuilding': { desc: 'Home repair, rebuilding grants, and recovery case management', type: 'grant', agency: 'CHARITY' },
+    'Housing & Community':   { desc: 'Homeowner assistance, childcare, workforce development across 41 counties', type: 'grant', agency: 'CHARITY' },
+    'Relief Services':       { desc: 'Food, shelter, mental health, case management, and emergency operations', type: 'grant', agency: 'CHARITY' },
+    'State & Local Gov':     { desc: 'Texas state government, Harris County, City of Houston, and other local governments', agency: 'STATE' },
+    'Texas State':           { desc: 'Funded primarily from Economic Stabilization Fund (Rainy Day Fund, SB 500) and General Revenue', agency: 'STATE' },
+    'Harris County':         { desc: '$2.5B flood bond approved Aug 2018 with 85% voter approval; property tax-backed', agency: 'STATE' },
+    'Other Local Gov':       { desc: 'City of Houston debris removal match, other county emergency response costs', agency: 'STATE' },
+    'Flood Mitigation Funds': { desc: 'Flood Infrastructure Fund ($793M via TWDB) + TX Infrastructure Resiliency Fund ($857M)', type: 'infra', agency: 'STATE' },
+    'Federal Match':         { desc: 'Required non-federal cost share: FEMA PA 10% match ($335M) + HMGP 25% match ($273M)', type: 'grant', agency: 'STATE' },
+    'Agency Response':       { desc: 'DPS operations ($97M), HHSC Medicaid ($110M), higher ed repairs ($132M), GLO coastal ($200M), other pre-2019 spending', type: 'grant', agency: 'STATE' },
+    'Local Flood Projects':  { desc: '109+ projects completed; $1.74B from bond proceeds for direct local flood control infrastructure', type: 'infra', agency: 'STATE' },
+    'Federal Match Leverage': { desc: 'Bond proceeds set aside to attract ~$2.5\u2013$3B in additional federal matching funds', type: 'infra', agency: 'STATE' },
+    'Local Response':        { desc: 'City of Houston debris match (~$25M), other county FEMA PA match and emergency costs', type: 'grant', agency: 'STATE' },
+    'USDA':                  { desc: 'U.S. Department of Agriculture', type: 'grant', agency: 'USDA' },
+    'Other Federal':         { desc: 'Dept. of Education, FHWA, DOL, EDA, FTA, and HHS', agency: 'OTHER_FED' },
+    'D-SNAP Benefits':       { desc: 'Disaster SNAP food assistance; 440,000+ new households served', type: 'grant', agency: 'USDA' },
+    'Early SNAP Benefits':   { desc: 'Accelerated benefits to 600,000+ existing SNAP households', type: 'grant', agency: 'USDA' },
+    'Watershed Protection':  { desc: 'NRCS Emergency Watershed Protection for Harris County flood control repairs', type: 'grant', agency: 'USDA' },
+    'Education Aid':         { desc: 'Emergency Impact Aid for 1M+ displaced students across 300+ school districts', type: 'grant', agency: 'OTHER_FED' },
+    'Highway Repair':        { desc: 'FHWA Emergency Relief for road and bridge repair ($25M immediate + $75M supplemental)', type: 'infra', agency: 'OTHER_FED' },
+    'Workforce Aid':         { desc: 'DOL Dislocated Worker Grants ($36M) + Disaster Unemployment Assistance (~$30M)', type: 'grant', agency: 'OTHER_FED' },
+    'Other Programs':        { desc: 'EDA economic development grants ($28M), FTA transit repair ($23M), HHS crisis counseling ($14M)', type: 'grant', agency: 'OTHER_FED' },
+    'FEMA':                  { desc: 'Federal Emergency Management Agency', type: 'grant', agency: 'FEMA' },
+    'SBA':                   { desc: 'Small Business Administration', type: 'loan', agency: 'SBA' },
+    'HUD':                   { desc: 'Dept. of Housing & Urban Development', type: 'grant', agency: 'HUD' },
+    'USACE':                 { desc: 'U.S. Army Corps of Engineers', type: 'infra', agency: 'USACE' },
+    'Individual Assistance': { desc: 'Direct aid to disaster survivors', type: 'grant', agency: 'FEMA' },
+    'Public Assistance':     { desc: 'Aid to state/local governments & nonprofits', type: 'grant', agency: 'FEMA' },
+    'Hazard Mitigation':     { desc: 'HMGP \u2014 reduce future disaster risk', type: 'grant', agency: 'FEMA' },
+    'Flood Insurance':       { desc: 'National Flood Insurance Program', type: 'insurance', agency: 'FEMA' },
+    'Disaster Loans':        { desc: 'Low-interest disaster recovery loans', type: 'loan', agency: 'SBA' },
+    'CDBG-DR':               { desc: 'Community Development Block Grant \u2014 Disaster Recovery', type: 'grant', agency: 'HUD' },
+    'Flood Control':         { desc: 'Supplemental flood infrastructure projects', type: 'infra', agency: 'USACE' },
+    'Housing Assistance':    { desc: 'Rental aid, home repair/replacement grants', type: 'grant', agency: 'FEMA' },
+    'Other Needs':           { desc: 'Medical, dental, funeral, personal property', type: 'grant', agency: 'FEMA' },
+    'Emergency Work':        { desc: 'Debris removal & emergency protective measures', type: 'grant', agency: 'FEMA' },
+    'Permanent Work':        { desc: 'Roads, water systems, buildings, utilities', type: 'grant', agency: 'FEMA' },
+    'Mitigation Projects':   { desc: 'Buyouts, elevation, drainage improvements', type: 'grant', agency: 'FEMA' },
+    'Claims Paid':           { desc: 'Policyholder flood damage claims', type: 'insurance', agency: 'FEMA' },
+    'Home Loans':            { desc: 'Up to $200K property + $40K personal property', type: 'loan', agency: 'SBA' },
+    'Business Loans':        { desc: 'Physical disaster + economic injury loans', type: 'loan', agency: 'SBA' },
+    'Housing Programs':      { desc: 'Homeowner assistance & reimbursement', type: 'grant', agency: 'HUD' },
+    'Rental Housing':        { desc: 'Affordable multifamily housing recovery', type: 'grant', agency: 'HUD' },
+    'Infrastructure & Buyout': { desc: 'Local infrastructure repair + property acquisition', type: 'grant', agency: 'HUD' },
+    'Local Gov Programs':    { desc: 'Harris County, City of Houston & other local allocations', type: 'grant', agency: 'HUD' },
+    'Planning & Other':      { desc: 'Planning, economic revitalization, FEMA PA match', type: 'grant', agency: 'HUD' },
+    'Coastal Spine':         { desc: 'Sabine Pass to Galveston Bay coastal barrier', type: 'infra', agency: 'USACE' },
+    'Inland Projects':       { desc: 'Brays Bayou, Clear Creek, Hunting & White Oak Bayou', type: 'infra', agency: 'USACE' },
+    // Out-of-Pocket Recovery
+    'Out-of-Pocket Recovery': { desc: 'Estimated uninsured self-funded recovery costs by households and businesses; derived from gap between total damage and formally tracked funding', agency: 'OUT_OF_POCKET' },
+    'Homeowner Costs':       { desc: 'Only 20% of homeowners had flood insurance; FEMA grants averaged ~$8,900 against ~$115K avg. damage per home', agency: 'OUT_OF_POCKET' },
+    'Business Costs':        { desc: '58% of businesses reported uninsured physical losses; 74% had uninsured revenue losses (Dallas Fed surveys)', agency: 'OUT_OF_POCKET' },
+    'Home Repairs':          { desc: 'Structural repairs, mold remediation, and rebuilding for uninsured/underinsured homes', agency: 'OUT_OF_POCKET' },
+    'Temporary Housing':     { desc: 'Temporary rental, hotel stays, and relocation costs beyond FEMA assistance', agency: 'OUT_OF_POCKET' },
+    'Personal Property':     { desc: 'Replacement of furniture, appliances, vehicles, and personal belongings', agency: 'OUT_OF_POCKET' },
+    'Physical Repairs':      { desc: 'Commercial building repairs, equipment replacement, and inventory losses', agency: 'OUT_OF_POCKET' },
+    'Operations Recovery':   { desc: 'Business continuity costs, supply chain recovery, and lost revenue absorption', agency: 'OUT_OF_POCKET' },
+    // Other Recovery Costs
+    'Other Recovery Costs':  { desc: 'Utility, healthcare, faith-based, environmental, agricultural, and foreign aid spending', agency: 'OTHER' },
+    'Utility Restoration':   { desc: 'CenterPoint, AEP Texas, Entergy grid restoration plus water/sewer system repairs (S&P Global)', type: 'infra', agency: 'OTHER' },
+    'Healthcare System':     { desc: 'Hospital damage ($380M capital), uncompensated care ($40M), mental health; 92 hospitals surveyed (THA)', agency: 'OTHER' },
+    'Faith-Based Orgs':      { desc: 'Southern Baptists (2.2M meals, 2,600 properties), Catholic Charities, local congregations (Texas Impact)', type: 'grant', agency: 'OTHER' },
+    'Environmental Cleanup': { desc: 'EPA $155M remediation at San Jacinto Superfund site; 13 of 41 regional Superfund sites flooded', type: 'infra', agency: 'OTHER' },
+    'Agricultural Recovery': { desc: 'Uninsured crop/livestock losses after USDA crop insurance; cotton $100M, livestock $93M (Texas A&M)', agency: 'OTHER' },
+    'Foreign Aid':           { desc: 'Qatar pledged $30M; Venezuela/Citgo offered $5M; notably smaller than post-Katrina response', type: 'grant', agency: 'OTHER' },
+};
+
+// Source citations and URLs for tooltip links
+const sourceInfo = {
+    // Federal
+    'Federal Government':    { cite: 'Aggregate of federal agency totals' },
+    'FEMA':                  { cite: 'FEMA Disaster 4332', url: 'https://www.fema.gov/disaster/4332' },
+    'Individual Assistance': { cite: 'FEMA IHP Data', url: 'https://www.fema.gov/disaster/4332' },
+    'Public Assistance':     { cite: 'FEMA PA Data', url: 'https://www.fema.gov/disaster/4332' },
+    'Hazard Mitigation':     { cite: 'FEMA HMGP', url: 'https://www.fema.gov/disaster/4332' },
+    'Flood Insurance':       { cite: 'CRS Report IN10784' },
+    'Housing Assistance':    { cite: 'FEMA IHP Data', url: 'https://www.fema.gov/disaster/4332' },
+    'Other Needs':           { cite: 'FEMA IHP Data', url: 'https://www.fema.gov/disaster/4332' },
+    'Emergency Work':        { cite: 'FEMA PA Cat A\u2013B', url: 'https://www.fema.gov/disaster/4332' },
+    'Permanent Work':        { cite: 'FEMA PA Cat C\u2013G', url: 'https://www.fema.gov/disaster/4332' },
+    'Mitigation Projects':   { cite: 'FEMA HMGP', url: 'https://www.fema.gov/disaster/4332' },
+    'Claims Paid':           { cite: 'CRS Report IN10784' },
+    'SBA':                   { cite: 'SBA ODA, Jan 2018' },
+    'Disaster Loans':        { cite: 'SBA ODA, Jan 2018' },
+    'Home Loans':            { cite: 'SBA ODA, Jan 2018' },
+    'Business Loans':        { cite: 'SBA ODA, Jan 2018' },
+    'HUD':                   { cite: 'Texas GLO Action Plan', url: 'https://recovery.texas.gov/' },
+    'CDBG-DR':               { cite: 'Texas GLO Action Plan', url: 'https://recovery.texas.gov/' },
+    'Housing Programs':      { cite: 'Texas GLO Action Plan', url: 'https://recovery.texas.gov/' },
+    'Rental Housing':        { cite: 'Texas GLO Action Plan', url: 'https://recovery.texas.gov/' },
+    'Infrastructure & Buyout': { cite: 'Texas GLO Action Plan', url: 'https://recovery.texas.gov/' },
+    'Local Gov Programs':    { cite: 'Texas GLO Action Plan', url: 'https://recovery.texas.gov/' },
+    'Planning & Other':      { cite: 'Texas GLO Action Plan', url: 'https://recovery.texas.gov/' },
+    'USACE':                 { cite: 'USACE Civil Works, 2018' },
+    'Flood Control':         { cite: 'USACE Civil Works, 2018' },
+    'Coastal Spine':         { cite: 'USACE Civil Works, 2018' },
+    'Inland Projects':       { cite: 'USACE Civil Works, 2018' },
+    'USDA':                  { cite: 'CBPP / Texas HHSC' },
+    'D-SNAP Benefits':       { cite: 'CBPP D-SNAP Report' },
+    'Early SNAP Benefits':   { cite: 'CBPP / Texas HHSC' },
+    'Watershed Protection':  { cite: 'NRCS Emergency Watershed' },
+    'Other Federal':         { cite: 'Multiple agency reports' },
+    'Education Aid':         { cite: 'Dept. of Education TEIA' },
+    'Highway Repair':        { cite: 'FHWA Emergency Relief' },
+    'Workforce Aid':         { cite: 'DOL / DUA' },
+    'Other Programs':        { cite: 'EDA / FTA / HHS' },
+    // State & Local
+    'State & Local Gov':     { cite: 'Aggregate of state/local totals' },
+    'Texas State':           { cite: 'TX Comptroller / LBB', url: 'https://comptroller.texas.gov/economy/fiscal-notes/archive/2018/special-edition/impact.php' },
+    'Flood Mitigation Funds': { cite: 'TWDB / TX Legislature' },
+    'Federal Match':         { cite: 'LBB Fiscal Report' },
+    'Agency Response':       { cite: 'LBB Fiscal Report' },
+    'Harris County':         { cite: 'HCFCD Bond Program', url: 'https://www.hcfcd.org/bond-program' },
+    'Local Flood Projects':  { cite: 'HCFCD Bond Program', url: 'https://www.hcfcd.org/bond-program' },
+    'Federal Match Leverage': { cite: 'HCFCD Bond Program', url: 'https://www.hcfcd.org/bond-program' },
+    'Other Local Gov':       { cite: 'City/County records' },
+    'Local Response':        { cite: 'City/County records' },
+    // Private Insurance
+    'Private Insurance':     { cite: 'AIR Worldwide / TX DOI' },
+    'Residential Property':  { cite: 'TX DOI Data Call, 2019' },
+    'Commercial Property':   { cite: 'TX DOI Data Call, 2019' },
+    'Auto Claims':           { cite: 'TX DOI Data Call, 2019' },
+    'Other Private Claims':  { cite: 'TX DOI Data Call, 2019' },
+    // Charitable
+    'Charitable Giving':     { cite: 'Charity Navigator / TX Tribune' },
+    'American Red Cross':    { cite: 'Red Cross Two-Year Report' },
+    'Recovery Funds':        { cite: 'GHCF / Dell Foundation' },
+    'Other Nonprofits':      { cite: 'Charity Navigator' },
+    'Direct Financial Aid':  { cite: 'Red Cross Two-Year Report' },
+    'Recovery & Rebuilding': { cite: 'Red Cross Two-Year Report' },
+    'Housing & Community':   { cite: 'GHCF / Dell Foundation' },
+    'Relief Services':       { cite: 'Charity Navigator' },
+    // Out-of-Pocket
+    'Out-of-Pocket Recovery': { cite: 'Gap estimate: NOAA / Wharton / Dallas Fed' },
+    'Homeowner Costs':       { cite: 'Kinder Institute / Rice', url: 'https://kinder.rice.edu/urbanedge' },
+    'Business Costs':        { cite: 'Dallas Fed Surveys, 2017', url: 'https://www.dallasfed.org/research/economics/2017/1017' },
+    'Home Repairs':          { cite: 'Kinder Institute / Rice', url: 'https://kinder.rice.edu/urbanedge' },
+    'Temporary Housing':     { cite: 'Wharton Risk Center estimate' },
+    'Personal Property':     { cite: 'NOAA / DOI gap estimate' },
+    'Physical Repairs':      { cite: 'Dallas Fed Surveys, 2017', url: 'https://www.dallasfed.org/research/economics/2017/1017' },
+    'Operations Recovery':   { cite: 'Dallas Fed Surveys, 2017', url: 'https://www.dallasfed.org/research/economics/2017/1017' },
+    // Other Recovery
+    'Other Recovery Costs':  { cite: 'Aggregate of sector totals' },
+    'Utility Restoration':   { cite: 'S&P Global, Aug 2018' },
+    'Healthcare System':     { cite: 'TX Hospital Association' },
+    'Faith-Based Orgs':      { cite: 'Texas Impact Report', url: 'https://texasimpact.org/' },
+    'Environmental Cleanup': { cite: 'EPA / UPI, Oct 2017' },
+    'Agricultural Recovery': { cite: 'TX A&M / TX Farm Bureau' },
+    'Foreign Aid':           { cite: 'Washington Post / Fortune' },
+};
+
+const rawLinks = [
+    // Federal Government → Agency
+    { source: 'Federal Government', target: 'FEMA',  value: 14024 },
+    { source: 'Federal Government', target: 'SBA',   value: 3005 },
+    { source: 'Federal Government', target: 'HUD',   value: 5676 },
+    { source: 'Federal Government', target: 'USACE', value: 4396 },
+    { source: 'Federal Government', target: 'USDA',  value: 712 },
+    { source: 'Federal Government', target: 'Other Federal', value: 405 },
+
+    // State & Local Government → Entities
+    { source: 'State & Local Gov', target: 'Texas State',     value: 3000 },
+    { source: 'State & Local Gov', target: 'Harris County',   value: 2500 },
+    { source: 'State & Local Gov', target: 'Other Local Gov', value: 150 },
+
+    // State/Local Entities → Programs
+    { source: 'Texas State',   target: 'Flood Mitigation Funds',  value: 1650 },
+    { source: 'Texas State',   target: 'Federal Match',           value: 608 },
+    { source: 'Texas State',   target: 'Agency Response',         value: 742 },
+    { source: 'Harris County', target: 'Local Flood Projects',    value: 1740 },
+    { source: 'Harris County', target: 'Federal Match Leverage',  value: 760 },
+    { source: 'Other Local Gov', target: 'Local Response',        value: 150 },
+
+    // Private Insurance → Claim Types
+    { source: 'Private Insurance', target: 'Residential Property', value: 2700 },
+    { source: 'Private Insurance', target: 'Commercial Property',  value: 3500 },
+    { source: 'Private Insurance', target: 'Auto Claims',          value: 3300 },
+    { source: 'Private Insurance', target: 'Other Private Claims', value: 500 },
+
+    // Charitable Giving → Organizations
+    { source: 'Charitable Giving', target: 'American Red Cross', value: 525 },
+    { source: 'Charitable Giving', target: 'Recovery Funds',     value: 214 },
+    { source: 'Charitable Giving', target: 'Other Nonprofits',   value: 328 },
+
+    // Organizations → Spending Categories
+    { source: 'American Red Cross', target: 'Direct Financial Aid',  value: 345 },
+    { source: 'American Red Cross', target: 'Recovery & Rebuilding', value: 180 },
+    { source: 'Recovery Funds',     target: 'Housing & Community',   value: 214 },
+    { source: 'Other Nonprofits',   target: 'Relief Services',       value: 328 },
+
+    // Agency → Program
+    { source: 'USDA',          target: 'D-SNAP Benefits',      value: 467 },
+    { source: 'USDA',          target: 'Early SNAP Benefits',  value: 160 },
+    { source: 'USDA',          target: 'Watershed Protection', value: 85 },
+    { source: 'Other Federal', target: 'Education Aid',        value: 174 },
+    { source: 'Other Federal', target: 'Highway Repair',       value: 100 },
+    { source: 'Other Federal', target: 'Workforce Aid',        value: 66 },
+    { source: 'Other Federal', target: 'Other Programs',       value: 65 },
+    { source: 'FEMA',  target: 'Individual Assistance', value: 1657 },
+    { source: 'FEMA',  target: 'Public Assistance',     value: 2184 },
+    { source: 'FEMA',  target: 'Hazard Mitigation',     value: 1183 },
+    { source: 'FEMA',  target: 'Flood Insurance',       value: 9000 },
+    { source: 'SBA',   target: 'Disaster Loans',        value: 3005 },
+    { source: 'HUD',   target: 'CDBG-DR',               value: 5676 },
+    { source: 'USACE', target: 'Flood Control',          value: 4396 },
+
+    // Program → Category
+    { source: 'Individual Assistance', target: 'Housing Assistance',      value: 1243 },
+    { source: 'Individual Assistance', target: 'Other Needs',             value: 414 },
+    { source: 'Public Assistance',     target: 'Emergency Work',          value: 1290 },
+    { source: 'Public Assistance',     target: 'Permanent Work',          value: 894 },
+    { source: 'Hazard Mitigation',     target: 'Mitigation Projects',     value: 1183 },
+    { source: 'Flood Insurance',       target: 'Claims Paid',             value: 9000 },
+    { source: 'Disaster Loans',        target: 'Home Loans',              value: 2714 },
+    { source: 'Disaster Loans',        target: 'Business Loans',          value: 291 },
+    { source: 'CDBG-DR',              target: 'Housing Programs',         value: 1434 },
+    { source: 'CDBG-DR',              target: 'Rental Housing',           value: 586 },
+    { source: 'CDBG-DR',              target: 'Infrastructure & Buyout',  value: 602 },
+    { source: 'CDBG-DR',              target: 'Local Gov Programs',       value: 2744 },
+    { source: 'CDBG-DR',              target: 'Planning & Other',         value: 310 },
+    { source: 'Flood Control',        target: 'Coastal Spine',            value: 3900 },
+    { source: 'Flood Control',        target: 'Inland Projects',          value: 496 },
+
+    // Out-of-Pocket Recovery → Entity → Category
+    { source: 'Out-of-Pocket Recovery', target: 'Homeowner Costs',    value: 30000 },
+    { source: 'Out-of-Pocket Recovery', target: 'Business Costs',     value: 10000 },
+    { source: 'Homeowner Costs',        target: 'Home Repairs',       value: 20000 },
+    { source: 'Homeowner Costs',        target: 'Temporary Housing',  value: 5000 },
+    { source: 'Homeowner Costs',        target: 'Personal Property',  value: 5000 },
+    { source: 'Business Costs',         target: 'Physical Repairs',   value: 6000 },
+    { source: 'Business Costs',         target: 'Operations Recovery', value: 4000 },
+
+    // Other Recovery Costs → Category
+    { source: 'Other Recovery Costs', target: 'Utility Restoration',   value: 520 },
+    { source: 'Other Recovery Costs', target: 'Healthcare System',     value: 460 },
+    { source: 'Other Recovery Costs', target: 'Faith-Based Orgs',      value: 211 },
+    { source: 'Other Recovery Costs', target: 'Environmental Cleanup', value: 155 },
+    { source: 'Other Recovery Costs', target: 'Agricultural Recovery', value: 150 },
+    { source: 'Other Recovery Costs', target: 'Foreign Aid',           value: 35 },
+];
+
+// Build unique nodes
+const nodeNames = Array.from(new Set(rawLinks.flatMap(l => [l.source, l.target])));
+const nodes = nodeNames.map(name => ({ name }));
+const nodeIndex = Object.fromEntries(nodeNames.map((n, i) => [n, i]));
+
+const links = rawLinks.map(l => ({
+    source: nodeIndex[l.source],
+    target: nodeIndex[l.target],
+    value: l.value
+}));
+
+// Dimensions
+const width = 1500;
+const height = 1800;
+const margin = { top: 40, right: 220, bottom: 20, left: 200 };
+
+const svg = d3.select('#sankey')
+    .attr('width', width)
+    .attr('height', height)
+    .attr('viewBox', `0 0 ${width} ${height}`);
+
+// Explicit vertical sort order — each branch is sequential to eliminate link crossings
+const nodeSortPriority = {
+    'Federal Government': 0,
+    // FEMA branch
+    'FEMA': 100,
+    'Flood Insurance': 110, 'Claims Paid': 110,
+    'Public Assistance': 120, 'Emergency Work': 121, 'Permanent Work': 122,
+    'Individual Assistance': 130, 'Housing Assistance': 131, 'Other Needs': 132,
+    'Hazard Mitigation': 140, 'Mitigation Projects': 141,
+    // HUD branch
+    'HUD': 200,
+    'CDBG-DR': 210,
+    'Housing Programs': 211, 'Rental Housing': 212, 'Infrastructure & Buyout': 213,
+    'Local Gov Programs': 214, 'Planning & Other': 215,
+    // USACE branch
+    'USACE': 300,
+    'Flood Control': 310, 'Coastal Spine': 311, 'Inland Projects': 312,
+    // SBA branch
+    'SBA': 400,
+    'Disaster Loans': 410, 'Home Loans': 411, 'Business Loans': 412,
+    // USDA branch
+    'USDA': 500,
+    'D-SNAP Benefits': 510, 'Early SNAP Benefits': 520, 'Watershed Protection': 530,
+    // Other Federal branch
+    'Other Federal': 600,
+    'Education Aid': 610, 'Highway Repair': 620, 'Workforce Aid': 630, 'Other Programs': 640,
+    // State & Local
+    'State & Local Gov': 1000,
+    'Texas State': 1100, 'Flood Mitigation Funds': 1110, 'Federal Match': 1120, 'Agency Response': 1130,
+    'Harris County': 1200, 'Local Flood Projects': 1210, 'Federal Match Leverage': 1220,
+    'Other Local Gov': 1300, 'Local Response': 1310,
+    // Private Insurance
+    'Private Insurance': 2000,
+    'Commercial Property': 2100, 'Auto Claims': 2200, 'Residential Property': 2300, 'Other Private Claims': 2400,
+    // Charitable Giving
+    'Charitable Giving': 3000,
+    'American Red Cross': 3100, 'Direct Financial Aid': 3110, 'Recovery & Rebuilding': 3120,
+    'Recovery Funds': 3200, 'Housing & Community': 3210,
+    'Other Nonprofits': 3300, 'Relief Services': 3310,
+    // Out-of-Pocket Recovery
+    'Out-of-Pocket Recovery': 4000,
+    'Homeowner Costs': 4100, 'Home Repairs': 4110, 'Temporary Housing': 4120, 'Personal Property': 4130,
+    'Business Costs': 4200, 'Physical Repairs': 4210, 'Operations Recovery': 4220,
+    // Other Recovery Costs
+    'Other Recovery Costs': 5000,
+    'Utility Restoration': 5100, 'Healthcare System': 5200, 'Faith-Based Orgs': 5300,
+    'Environmental Cleanup': 5400, 'Agricultural Recovery': 5500, 'Foreign Aid': 5600,
+};
+
+function sortKey(name) { return nodeSortPriority[name] ?? 9999; }
+
+// Sankey layout
+const sankey = d3.sankey()
+    .nodeId(d => d.index)
+    .nodeWidth(18)
+    .nodePadding(20)
+    .nodeAlign(d3.sankeyLeft)
+    .nodeSort((a, b) => sortKey(a.name) - sortKey(b.name))
+    .linkSort((a, b) => sortKey(a.target.name) - sortKey(b.target.name))
+    .extent([
+        [margin.left, margin.top],
+        [width - margin.right, height - margin.bottom]
+    ]);
+
+const graph = sankey({
+    nodes: nodes.map(d => ({ ...d })),
+    links: links.map(d => ({ ...d }))
+});
+
+// Determine agency color for each node
+function getNodeAgency(node) {
+    const meta = nodeMeta[node.name];
+    return meta ? meta.agency : 'FEMA';
+}
+
+function getNodeColor(node) {
+    return agencyColors[getNodeAgency(node)] || '#6366f1';
+}
+
+// Tooltip (interactive for nodes so source links are clickable)
+const tooltip = d3.select('#tooltip');
+let hideTimer;
+
+function showTooltip(evt, html, interactive) {
+    clearTimeout(hideTimer);
+    tooltip.html(html)
+        .style('opacity', 1)
+        .style('left', (evt.clientX + 16) + 'px')
+        .style('top', (evt.clientY - 10) + 'px')
+        .style('pointer-events', interactive ? 'auto' : 'none');
+}
+
+function hideTooltip() {
+    clearTimeout(hideTimer);
+    tooltip.style('opacity', 0).style('pointer-events', 'none');
+}
+
+function scheduleHide(delay) {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(hideTooltip, delay);
+}
+
+// Keep tooltip visible when user hovers over it to click source links
+tooltip.on('mouseenter', () => clearTimeout(hideTimer))
+       .on('mouseleave', () => hideTooltip());
+
+function sourceLine(name) {
+    const si = sourceInfo[name] || {};
+    if (!si.cite) return '';
+    return si.url
+        ? `<div class="tt-source"><a href="${si.url}" target="_blank" rel="noopener">${si.cite} \u2197</a></div>`
+        : `<div class="tt-source">${si.cite}</div>`;
+}
+
+function formatMoney(val) {
+    if (val >= 1000) return '$' + (val / 1000).toFixed(1) + 'B';
+    return '$' + val.toFixed(0) + 'M';
+}
+
+function typeTag(type) {
+    const labels = { loan: 'Loan', insurance: 'Insurance', grant: 'Grant', infra: 'Infrastructure' };
+    return `<span class="type-tag tag-${type}">${labels[type]}</span>`;
+}
+
+// Draw links
+const linkGroup = svg.append('g')
+    .attr('fill', 'none')
+    .selectAll('path')
+    .data(graph.links)
+    .join('path')
+    .attr('class', 'sankey-link')
+    .attr('d', d3.sankeyLinkHorizontal())
+    .attr('stroke', d => {
+        // For flows from top-level sources, use the target's color
+        if (d.source.name === 'Federal Government') return getNodeColor(d.target);
+        return getNodeColor(d.source);
+    })
+    .attr('stroke-opacity', 0.25)
+    .attr('stroke-width', d => Math.max(1, d.width))
+    .on('mouseover', function(evt, d) {
+        d3.select(this).attr('stroke-opacity', 0.5);
+        const meta = nodeMeta[d.target.name] || {};
+        showTooltip(evt, `
+            <div class="tt-label">${d.source.name} \u2192 ${d.target.name}</div>
+            <div class="tt-value">${formatMoney(d.value)}</div>
+            ${meta.desc ? `<div class="tt-detail">${meta.desc}</div>` : ''}
+            ${sourceLine(d.target.name)}
+        `, false);
+    })
+    .on('mousemove', function(evt) {
+        tooltip
+            .style('left', (evt.clientX + 16) + 'px')
+            .style('top', (evt.clientY - 10) + 'px');
+    })
+    .on('mouseout', function() {
+        d3.select(this).attr('stroke-opacity', 0.25);
+        hideTooltip();
+    });
+
+// Draw nodes
+const nodeGroup = svg.append('g')
+    .selectAll('g')
+    .data(graph.nodes)
+    .join('g');
+
+nodeGroup.append('rect')
+    .attr('x', d => d.x0)
+    .attr('y', d => d.y0)
+    .attr('width', d => d.x1 - d.x0)
+    .attr('height', d => Math.max(1, d.y1 - d.y0))
+    .attr('fill', d => getNodeColor(d))
+    .attr('rx', 3)
+    .attr('opacity', 0.9)
+    .style('cursor', d => (sourceInfo[d.name] || {}).url ? 'pointer' : 'default')
+    .on('mouseover', function(evt, d) {
+        d3.select(this).attr('opacity', 1);
+        linkGroup.attr('stroke-opacity', l =>
+            l.source === d || l.target === d ? 0.55 : 0.08
+        );
+        const meta = nodeMeta[d.name] || {};
+        showTooltip(evt, `
+            <div class="tt-label">${d.name} ${meta.type ? typeTag(meta.type) : ''}</div>
+            <div class="tt-value">${formatMoney(d.value)}</div>
+            ${meta.desc ? `<div class="tt-detail">${meta.desc}</div>` : ''}
+            ${sourceLine(d.name)}
+        `, true);
+    })
+    .on('mouseout', function(evt, d) {
+        d3.select(this).attr('opacity', 0.9);
+        linkGroup.attr('stroke-opacity', 0.25);
+        scheduleHide(800);
+    });
+
+// Determine column for each node (0 = source, 1 = agency, 2 = program, 3 = category)
+function getColumn(d) {
+    return d.depth;
+}
+
+// Label positioning: terminal nodes (no children) on the right, all others on the left
+function labelX(d) {
+    return d.sourceLinks.length === 0 ? d.x1 + 10 : d.x0 - 10;
+}
+
+function labelAnchor(d) {
+    return d.sourceLinks.length === 0 ? 'start' : 'end';
+}
+
+// Node labels
+nodeGroup.append('text')
+    .attr('class', 'node-label')
+    .attr('x', labelX)
+    .attr('y', d => (d.y0 + d.y1) / 2)
+    .attr('dy', '-0.15em')
+    .attr('text-anchor', labelAnchor)
+    .text(d => d.name);
+
+// Value labels below name
+nodeGroup.append('text')
+    .attr('class', 'node-value')
+    .attr('x', labelX)
+    .attr('y', d => (d.y0 + d.y1) / 2)
+    .attr('dy', '1.0em')
+    .attr('text-anchor', labelAnchor)
+    .text(d => formatMoney(d.value));
+
+// Find actual x positions for column headers
+const col0x = d3.min(graph.nodes.filter(d => d.depth === 0), d => d.x0);
+const col1x = d3.mean(graph.nodes.filter(d => d.depth === 1), d => (d.x0 + d.x1) / 2);
+const col2x = d3.mean(graph.nodes.filter(d => d.depth === 2), d => (d.x0 + d.x1) / 2);
+const col3x = d3.max(graph.nodes.filter(d => d.depth === 3), d => d.x1);
+
+const colPositions = [
+    { x: col0x - 10, label: 'Source', anchor: 'end' },
+    { x: col1x - 10, label: 'Agency', anchor: 'end' },
+    { x: col2x - 10, label: 'Program', anchor: 'end' },
+    { x: col3x + 10, label: 'Category', anchor: 'start' }
+];
+
+svg.append('g').selectAll('text')
+    .data(colPositions)
+    .join('text')
+    .attr('class', 'column-header')
+    .attr('x', d => d.x)
+    .attr('y', 20)
+    .attr('text-anchor', d => d.anchor)
+    .text(d => d.label);
+
+</script>
+</body>
+</html>
