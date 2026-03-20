@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Disaster Risk Explorer &#8212; U.S. Counties</title>
+    <title>Disaster Risk Explorer for Non-Metropolitan Counties</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
@@ -507,7 +507,7 @@
 </head>
 <body>
 
-<h1>Disaster Risk Explorer</h1>
+<h1>Disaster Risk Explorer for Non-Metropolitan Counties</h1>
 <div class="subtitle">Expected Annual Loss by hazard type across U.S. counties</div>
 
 <!-- Controls -->
@@ -624,11 +624,6 @@
         <div id="vuln-table-container"></div>
     </div>
 
-    <!-- Scatter Plot -->
-    <div>
-        <div style="font-size:13px; font-weight:700; color:#5c4d3d; margin-bottom:8px;">EAL per Capita vs. Selected Indicator</div>
-        <div id="vuln-scatter-container"></div>
-    </div>
 </div>
 
 <div class="footnotes">
@@ -4645,7 +4640,6 @@ function updateVulnPanel() {
     );
     buildBivariateMatrix(eligible, hazKey);
     buildVulnTable(eligible, hazKey);
-    buildVulnScatter(eligible, hazKey);
 }
 
 // ── Bivariate Matrix ──
@@ -4658,111 +4652,226 @@ function buildBivariateMatrix(eligible, hazKey) {
 
     // Selected vulnerability indicator
     const vulnAccessor = currentIndicator === 'seniors' ? 'seniorPct' : currentIndicator === 'disability' ? 'disPct' : currentIndicator === 'mh' ? 'mhPct' : 'povRate';
-    const vulnLabel = currentIndicator === 'seniors' ? 'Seniors 65+' : currentIndicator === 'disability' ? 'Disability Rate' : currentIndicator === 'mh' ? 'Manufactured Housing' : 'Poverty Rate';
+    const vulnLabel = currentIndicator === 'seniors' ? 'Seniors 65+ (%)' : currentIndicator === 'disability' ? 'Disability Rate (%)' : currentIndicator === 'mh' ? 'Manufactured Housing (%)' : 'Poverty Rate (%)';
+    const vulnShort = currentIndicator === 'seniors' ? 'seniors 65+' : currentIndicator === 'disability' ? 'disability rate' : currentIndicator === 'mh' ? 'manufactured housing' : 'poverty rate';
 
     // Score counties on selected indicator
     const scored = eligible.map(c => ({
-        fips: c.fips, pop: c.pop, rucc: c.rucc,
+        fips: c.fips, pop: c.pop, rucc: c.rucc, name: c.name,
         vulnVal: c[vulnAccessor] || 0,
         ealPc: c[hazKey] / c.pop,
         isMetro: c.rucc <= 3,
+        povRate: c.povRate, seniorPct: c.seniorPct, disPct: c.disPct, mhPct: c.mhPct || 0,
     }));
 
-    function terciles(arr, acc) {
-        const s = arr.map(acc).sort((a,b) => a - b);
-        return [s[Math.floor(s.length/3)], s[Math.floor(s.length*2/3)]];
+    // Population-weighted terciles: find cutoff values where ~1/3 of population falls in each bin
+    function popTerciles(arr, acc) {
+        const sorted = arr.slice().sort((a,b) => acc(a) - acc(b));
+        const totalPop = sorted.reduce((s, d) => s + d.pop, 0);
+        let cumPop = 0, t1 = null, t2 = null;
+        for (const d of sorted) {
+            cumPop += d.pop;
+            if (t1 === null && cumPop >= totalPop / 3) t1 = acc(d);
+            if (t2 === null && cumPop >= totalPop * 2 / 3) { t2 = acc(d); break; }
+        }
+        return [t1, t2];
     }
-    const [rT1, rT2] = terciles(scored, d => d.ealPc);
-    const [vT1, vT2] = terciles(scored, d => d.vulnVal);
+    const [rT1, rT2] = popTerciles(scored, d => d.ealPc);
+    const [vT1, vT2] = popTerciles(scored, d => d.vulnVal);
     const rBin = v => v < rT1 ? 0 : v < rT2 ? 1 : 2;
     const vBin = v => v < vT1 ? 0 : v < vT2 ? 1 : 2;
 
-    // 3×3 matrix[vuln][risk]
-    const mx = Array.from({length:3}, () => Array.from({length:3}, () => ({n:0, m:0, nm:0, pop:0})));
+    // 3×3 matrix[vuln][risk] for insight cards
+    const mx = Array.from({length:3}, () => Array.from({length:3}, () => ({n:0, pop:0, nmpop:0})));
     scored.forEach(d => {
         const cell = mx[vBin(d.vulnVal)][rBin(d.ealPc)];
         cell.n++; cell.pop += d.pop;
-        if (d.isMetro) cell.m++; else cell.nm++;
+        if (!d.isMetro) cell.nmpop += d.pop;
     });
 
     // Bivariate colors: rows=vuln(0=low,2=high), cols=risk(0=low,2=high)
-    const colors = [
-        ['#e0ecf1','#96b9d4','#4a6fa5'],
-        ['#dbbfc7','#b48aa0','#7a5980'],
-        ['#e8a889','#c46d5e','#983a3a'],
-    ];
-    const txtClr = [
-        ['#3d3229','#3d3229','#fff'],
-        ['#3d3229','#fff','#fff'],
-        ['#3d3229','#fff','#fff'],
+    const bivColors = [
+        ['rgba(224,236,241,0.35)','rgba(150,185,212,0.35)','rgba(74,111,165,0.35)'],
+        ['rgba(219,191,199,0.35)','rgba(180,138,160,0.35)','rgba(122,89,128,0.35)'],
+        ['rgba(232,168,137,0.35)','rgba(196,109,94,0.35)','rgba(152,58,58,0.35)'],
     ];
 
-    const riskLabels = ['Lower risk','Mid risk','Higher risk'];
-    const vulnLabels = ['Higher vuln','Mid vuln','Lower vuln'];
+    // Build scatter plot with bivariate quadrant backgrounds
+    container.innerHTML = '';
+    const sW = 1350, sH = 550, margin = {top: 30, right: 30, bottom: 90, left: 60};
+    const plotW = sW - margin.left - margin.right;
+    const plotH = sH - margin.top - margin.bottom;
 
-    // Build two side-by-side grids: All Counties + Metro/Nonmetro split
-    function buildGrid(title, countFn, detailFn) {
-        let h = `<div class="biv-matrix-block">`;
-        h += `<div style="font-size:12px;font-weight:700;color:#5c4d3d;margin-bottom:6px;">${title}</div>`;
-        // Column headers
-        h += `<div class="biv-grid">`;
-        // Row: vuln High (index 2), Mid (1), Low (0) — top to bottom
-        for (let vi = 2; vi >= 0; vi--) {
-            // Row label
-            h += `<div class="biv-tick" style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:8px;">${vulnLabels[2-vi]}</div>`;
-            for (let ri = 0; ri < 3; ri++) {
-                const cell = mx[vi][ri];
-                h += `<div class="biv-cell" style="background:${colors[vi][ri]};color:${txtClr[vi][ri]};">
-                    <div class="biv-count">${countFn(cell)}</div>
-                    <div class="biv-detail">${detailFn(cell)}</div>
-                </div>`;
-            }
+    const svg = d3.select(container).append('svg')
+        .attr('viewBox', `0 0 ${sW} ${sH}`)
+        .style('width', '100%');
+
+    const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Scales — cap X at p95
+    const xValues = scored.map(d => d.ealPc).sort((a,b) => a - b);
+    const p95 = xValues[Math.floor(xValues.length * 0.95)];
+    const xMax = p95 * 1.15;
+    const xScale = d3.scaleLinear().domain([0, xMax]).range([0, plotW]);
+
+    const yMax = d3.max(scored, d => d.vulnVal) * 1.05;
+    const yScale = d3.scaleLinear().domain([0, yMax]).range([plotH, 0]);
+
+    const rScale = d3.scaleSqrt().domain([0, d3.max(scored, d => d.pop)]).range([1.5, 18]);
+
+    // Draw bivariate quadrant backgrounds
+    const rCuts = [0, rT1, rT2, xMax];
+    const vCuts = [0, vT1, vT2, yMax];
+    for (let vi = 0; vi < 3; vi++) {
+        for (let ri = 0; ri < 3; ri++) {
+            const x0 = xScale(Math.max(0, rCuts[ri]));
+            const x1 = xScale(Math.min(xMax, rCuts[ri+1]));
+            const y0 = yScale(Math.min(yMax, vCuts[vi+1]));
+            const y1 = yScale(Math.max(0, vCuts[vi]));
+            g.append('rect')
+                .attr('x', x0).attr('y', y0)
+                .attr('width', x1 - x0).attr('height', y1 - y0)
+                .attr('fill', bivColors[vi][ri])
+                .attr('stroke', 'none');
         }
-        // Bottom axis labels
-        h += `<div></div>`;
-        riskLabels.forEach(l => { h += `<div class="biv-tick" style="font-size:8px;">${l}</div>`; });
-        h += `</div>`; // close biv-grid
-        // Axis titles
-        h += `<div style="font-size:10px;color:#6b5c4a;margin-top:4px;font-weight:600;">Risk (EAL per Capita) \u2192</div>`;
-        h += `</div>`; // close biv-matrix-block
-        return h;
     }
 
-    let html = '<div class="biv-wrapper">';
-    html += buildGrid('All Counties',
-        cell => cell.n.toLocaleString(),
-        cell => `${cell.m}M / ${cell.nm}N`
-    );
-    html += buildGrid('Metro Counties',
-        cell => cell.m.toLocaleString(),
-        cell => cell.m > 0 ? `${(cell.m/scored.filter(d=>d.isMetro).length*100).toFixed(1)}%` : ''
-    );
-    html += buildGrid('Nonmetro Counties',
-        cell => cell.nm.toLocaleString(),
-        cell => cell.nm > 0 ? `${(cell.nm/scored.filter(d=>!d.isMetro).length*100).toFixed(1)}%` : ''
-    );
-    html += '</div>';
+    // Draw tercile cutoff lines
+    [rT1, rT2].forEach(v => {
+        if (v <= xMax) {
+            g.append('line')
+                .attr('x1', xScale(v)).attr('x2', xScale(v))
+                .attr('y1', 0).attr('y2', plotH)
+                .attr('stroke', '#8c7b6b').attr('stroke-width', 1.5)
+                .attr('stroke-dasharray', '6,4').attr('opacity', 0.7);
+        }
+    });
+    [vT1, vT2].forEach(v => {
+        g.append('line')
+            .attr('x1', 0).attr('x2', plotW)
+            .attr('y1', yScale(v)).attr('y2', yScale(v))
+            .attr('stroke', '#8c7b6b').attr('stroke-width', 1.5)
+            .attr('stroke-dasharray', '6,4').attr('opacity', 0.7);
+    });
 
-    // Vulnerability axis label (shared)
-    html += `<div style="text-align:center;font-size:10px;color:#6b5c4a;font-weight:600;margin-top:-4px;margin-bottom:8px;">\u2191 ${vulnLabel}</div>`;
+    // Tercile cutoff labels
+    g.append('text').attr('x', xScale(rT1)).attr('y', plotH + 28)
+        .attr('text-anchor', 'middle').attr('font-size', '10px').attr('fill', '#8c7b6b').attr('font-family', 'Inter, sans-serif')
+        .text(`$${Math.round(rT1)}/person`);
+    g.append('text').attr('x', xScale(rT2)).attr('y', plotH + 28)
+        .attr('text-anchor', 'middle').attr('font-size', '10px').attr('fill', '#8c7b6b').attr('font-family', 'Inter, sans-serif')
+        .text(`$${Math.round(rT2)}/person`);
+    g.append('text').attr('x', -8).attr('y', yScale(vT1))
+        .attr('text-anchor', 'end').attr('dominant-baseline', 'middle').attr('font-size', '10px').attr('fill', '#8c7b6b').attr('font-family', 'Inter, sans-serif')
+        .text(`${vT1.toFixed(1)}%`);
+    g.append('text').attr('x', -8).attr('y', yScale(vT2))
+        .attr('text-anchor', 'end').attr('dominant-baseline', 'middle').attr('font-size', '10px').attr('fill', '#8c7b6b').attr('font-family', 'Inter, sans-serif')
+        .text(`${vT2.toFixed(1)}%`);
 
-    // Insight stats
+    // Quadrant population labels
+    const fmtPop = v => v >= 1e6 ? (v/1e6).toFixed(1) + 'M' : v >= 1e3 ? Math.round(v/1e3).toLocaleString() + 'K' : v.toLocaleString();
+    const quadLabels = [
+        {vi:2, ri:2, anchor:'end', label:'High risk / High vuln'},
+        {vi:0, ri:0, anchor:'start', label:'Low risk / Low vuln'},
+    ];
+    quadLabels.forEach(({vi, ri, anchor, label}) => {
+        const cx = xScale((rCuts[ri] + Math.min(rCuts[ri+1], xMax)) / 2);
+        const cy = yScale((vCuts[vi] + Math.min(vCuts[vi+1], yMax)) / 2);
+        g.append('text').attr('x', cx).attr('y', cy - 6)
+            .attr('text-anchor', 'middle').attr('font-size', '11px').attr('font-weight', '700')
+            .attr('fill', '#5c4d3d').attr('font-family', 'Inter, sans-serif').attr('opacity', 0.6)
+            .text(label);
+        g.append('text').attr('x', cx).attr('y', cy + 10)
+            .attr('text-anchor', 'middle').attr('font-size', '10px')
+            .attr('fill', '#5c4d3d').attr('font-family', 'Inter, sans-serif').attr('opacity', 0.6)
+            .text(`${fmtPop(mx[vi][ri].pop)} pop · ${mx[vi][ri].n} counties`);
+    });
+
+    // Axes
+    g.append('g')
+        .attr('transform', `translate(0,${plotH})`)
+        .call(d3.axisBottom(xScale).ticks(8).tickFormat(d => '$' + d3.format(',.0f')(d)))
+        .call(g => g.select('.domain').attr('stroke', '#d4c4b0'))
+        .call(g => g.selectAll('.tick line').attr('stroke', '#d4c4b0'))
+        .call(g => g.selectAll('.tick text').attr('fill', '#8c7b6b').attr('font-size', '11px'));
+
+    g.append('g')
+        .call(d3.axisLeft(yScale).ticks(8).tickFormat(d => d + '%'))
+        .call(g => g.select('.domain').attr('stroke', '#d4c4b0'))
+        .call(g => g.selectAll('.tick line').attr('stroke', '#d4c4b0'))
+        .call(g => g.selectAll('.tick text').attr('fill', '#8c7b6b').attr('font-size', '11px'));
+
+    svg.append('text')
+        .attr('x', sW / 2).attr('y', sH - 6)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '12px').attr('fill', '#6b5c4a').attr('font-family', 'Inter, sans-serif')
+        .text('Expected Annual Loss Per Capita →');
+
+    svg.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('x', -sH / 2).attr('y', 14)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '12px').attr('fill', '#6b5c4a').attr('font-family', 'Inter, sans-serif')
+        .text(vulnLabel);
+
+    // Scatter dots — large on bottom, small on top
+    g.selectAll('circle')
+        .data(scored.sort((a,b) => b.pop - a.pop))
+        .join('circle')
+        .attr('cx', d => xScale(Math.min(d.ealPc, xMax)))
+        .attr('cy', d => yScale(Math.min(d.vulnVal, yMax)))
+        .attr('r', d => rScale(d.pop))
+        .attr('fill', d => d.isMetro ? 'rgba(37,99,235,0.35)' : 'rgba(22,163,74,0.35)')
+        .attr('stroke', d => d.isMetro ? '#2563eb' : '#16a34a')
+        .attr('stroke-width', 0.5)
+        .on('mouseover', function(evt, d) {
+            d3.select(this).attr('stroke-width', 2).attr('fill', d.isMetro ? 'rgba(37,99,235,0.7)' : 'rgba(22,163,74,0.7)');
+            const html = `<div class="tt-label">${d.name}</div>` +
+                `<div class="tt-value">${formatPc(d.ealPc)}/person</div>` +
+                `<div class="tt-detail">Poverty: ${d.povRate}% \u00b7 Seniors: ${d.seniorPct}% \u00b7 Disability: ${d.disPct}% \u00b7 Mfg Housing: ${d.mhPct}%</div>` +
+                `<div class="tt-detail">Pop: ${d.pop.toLocaleString()} \u00b7 RUCC ${d.rucc} (${d.isMetro ? 'Metro' : 'Nonmetro'})</div>`;
+            showTooltip(evt, html);
+        })
+        .on('mousemove', function(evt) {
+            const box = tooltip.node().getBoundingClientRect();
+            let x = evt.clientX + 12, y = evt.clientY - 12;
+            if (x + box.width > window.innerWidth - 10) x = evt.clientX - box.width - 12;
+            if (y + box.height > window.innerHeight - 10) y = evt.clientY - box.height - 12;
+            if (y < 10) y = 10;
+            tooltip.style('left', x + 'px').style('top', y + 'px');
+        })
+        .on('mouseout', function(evt, d) {
+            d3.select(this).attr('stroke-width', 0.5).attr('fill', d.isMetro ? 'rgba(37,99,235,0.35)' : 'rgba(22,163,74,0.35)');
+            hideTooltip();
+        });
+
+    // Legend
+    const legend = svg.append('g').attr('transform', `translate(${margin.left + 10}, ${margin.top + 10})`);
+    legend.append('circle').attr('cx', 0).attr('cy', 0).attr('r', 6).attr('fill', 'rgba(37,99,235,0.35)').attr('stroke', '#2563eb');
+    legend.append('text').attr('x', 12).attr('y', 4).attr('font-size', '11px').attr('fill', '#6b5c4a').attr('font-family', 'Inter, sans-serif').text('Metro (RUCC 1\u20133)');
+    legend.append('circle').attr('cx', 0).attr('cy', 20).attr('r', 6).attr('fill', 'rgba(22,163,74,0.35)').attr('stroke', '#16a34a');
+    legend.append('text').attr('x', 12).attr('y', 24).attr('font-size', '11px').attr('fill', '#6b5c4a').attr('font-family', 'Inter, sans-serif').text('Nonmetro (RUCC 4\u20139)');
+    legend.append('text').attr('x', 0).attr('y', 46).attr('font-size', '10px').attr('fill', '#a89880').attr('font-family', 'Inter, sans-serif').text('Dot size = county population');
+    legend.append('text').attr('x', 0).attr('y', 62).attr('font-size', '10px').attr('fill', '#a89880').attr('font-family', 'Inter, sans-serif').text('Dashed lines = population-weighted tercile cutoffs (each third ≈ 110M people)');
+
+    // Methodology note
+    let html = `<div style="text-align:center;font-size:10px;color:#8c7b6b;margin-top:6px;margin-bottom:12px;">Dashed lines divide counties so that roughly one-third of the U.S. population falls in each risk level and each ${vulnShort} level.</div>`;
+
+    // Insight cards
     const hrhv = mx[2][2]; // high vuln, high risk
     const lrlv = mx[0][0]; // low vuln, low risk
-    const highRiskN = mx[0][2].nm + mx[1][2].nm + mx[2][2].nm;
-    const highRiskT = mx[0][2].n + mx[1][2].n + mx[2][2].n;
-    const pctNmHRHV = hrhv.n > 0 ? ((hrhv.nm/hrhv.n)*100).toFixed(0) : 0;
-    const pctMeLRLV = lrlv.n > 0 ? ((lrlv.m/lrlv.n)*100).toFixed(0) : 0;
-    const pctNmHR = highRiskT > 0 ? ((highRiskN/highRiskT)*100).toFixed(0) : 0;
 
     html += '<div class="biv-insight-row">';
-    html += `<div class="biv-insight"><div class="biv-val">${pctNmHRHV}%</div>of high-risk / high-${vulnLabel.toLowerCase()}<br>counties are nonmetro</div>`;
-    html += `<div class="biv-insight"><div class="biv-val">${hrhv.n.toLocaleString()}</div>counties in the highest risk +<br>${vulnLabel.toLowerCase()} tercile</div>`;
-    html += `<div class="biv-insight"><div class="biv-val">${pctNmHR}%</div>of all high-risk counties<br>are nonmetro</div>`;
-    html += `<div class="biv-insight"><div class="biv-val">${pctMeLRLV}%</div>of low-risk / low-${vulnLabel.toLowerCase()}<br>counties are metro</div>`;
+    html += `<div class="biv-insight"><div class="biv-val">${fmtPop(hrhv.pop)}</div>Americans live in high-risk /<br>high-${vulnShort} counties</div>`;
+    html += `<div class="biv-insight"><div class="biv-val">${fmtPop(hrhv.nmpop)}</div>non-metro population in high-risk /<br>high-${vulnShort} counties</div>`;
+    html += `<div class="biv-insight"><div class="biv-val">${fmtPop(lrlv.pop)}</div>Americans live in low-risk /<br>low-${vulnShort} counties</div>`;
+    html += `<div class="biv-insight"><div class="biv-val">${fmtPop(lrlv.nmpop)}</div>non-metro population in low-risk /<br>low-${vulnShort} counties</div>`;
     html += '</div>';
 
-    container.innerHTML = html;
+    // Append HTML below the SVG
+    const htmlDiv = document.createElement('div');
+    htmlDiv.innerHTML = html;
+    container.appendChild(htmlDiv);
 }
 
 // ── Vulnerability Table ──
