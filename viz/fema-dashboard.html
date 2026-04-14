@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FEMA Disaster Declaration Dashboard (2025+)</title>
+    <title>FEMA Disaster Declaration Dashboard (2nd Trump Administration, January 20th 2025 – )</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <style>
         .fema-dashboard {
@@ -377,7 +377,7 @@
     </div>
 <div class="fema-dashboard" id="femaDashboard">
     <div class="header">
-        <h1>FEMA Disaster Declaration Dashboard (2025+)</h1>
+        <h1>FEMA Disaster Declaration Dashboard (2nd Trump Administration, January 20th 2025 – )</h1>
         <div class="header-stats" id="headerStats">
             <span>Loading...</span>
         </div>
@@ -523,7 +523,8 @@
     'use strict';
 
     const API_BASE = 'https://www.fema.gov/api/open';
-    const APPROVED_URL = `${API_BASE}/v1/FemaWebDisasterDeclarations?$filter=declarationDate gt '2024-12-31' and declarationType eq 'Major Disaster'&$top=1000`;
+    const INAUGURATION = '2025-01-20';
+    const APPROVED_URL = `${API_BASE}/v1/FemaWebDisasterDeclarations?$filter=declarationDate ge '${INAUGURATION}' and declarationType eq 'Major Disaster'&$top=1000`;
     const DENIED_URL = `${API_BASE}/v1/DeclarationDenials?$filter=declarationRequestDate gt '2024-12-31' and declarationRequestType eq 'Major Disaster'&$top=1000`;
 
     // Historical data URLs (2000-2024) — only fetch date fields for efficiency
@@ -1170,7 +1171,12 @@
                 if (!d.decisionDate) d.status = 'pending';
             });
 
-            allData = [...approved, ...denied];
+            // Remove any items with a decision date before inauguration (Jan 20, 2025)
+            const cutoff = new Date(INAUGURATION);
+            const filterByDecision = arr => arr.filter(d =>
+                !d.decisionDate || new Date(d.decisionDate) >= cutoff
+            );
+            allData = [...filterByDecision(approved), ...filterByDecision(denied)];
             filteredData = [...allData];
 
             computeStats();
