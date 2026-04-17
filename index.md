@@ -12,4 +12,4 @@ I have [published broadly](https://scholar.google.com/citations?user=59NDPsMAAAA
 
 Before joining the Urban Institute in 2023, I was a tenured professor of urban planning at Texas A&M University and before that the University of Colorado Denver. I have a BA in political science from Reed College and a PhD and MRP in city and regional planning from Cornell University.
 
-To keep up with my latest research, please subscribe to my Substack [Place + Resilience](https://andrewrumbach.substack.com/). Visit [Disaster Lab](/disasterlab.html) to see my latest disaster data sets, visualizations and dashboards.
+To keep up with my latest research, please subscribe to my Substack [Place + Resilience](https://andrewrumbach.substack.com/). Visit [Data Dashboards and Visualizations](/disasterlab.html) to see my latest data sets, visualizations and dashboards.
