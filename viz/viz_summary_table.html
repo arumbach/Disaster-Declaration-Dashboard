@@ -152,13 +152,13 @@
 
 <script>
 const data = [
-    { name: "Bush 1",  party: "rep", years: "2001–2005", approved: 214, denied: 46, denialRate: 17.7, medianApproval: 6, medianDenial: 32.5 },
-    { name: "Bush 2",  party: "rep", years: "2005–2009", approved: 243, denied: 46, denialRate: 15.9, medianApproval: 11, medianDenial: 63.5 },
-    { name: "Obama 1", party: "dem", years: "2009–2013", approved: 283, denied: 43, denialRate: 13.2, medianApproval: 12, medianDenial: 44 },
-    { name: "Obama 2", party: "dem", years: "2013–2017", approved: 194, denied: 45, denialRate: 18.8, medianApproval: 10, medianDenial: 29 },
-    { name: "Trump 1", party: "rep", years: "2017–2021", approved: 230, denied: 35, denialRate: 13.2, medianApproval: 18, medianDenial: 61 },
-    { name: "Biden",   party: "dem", years: "2021–2025", approved: 272, denied: 48, denialRate: 15, medianApproval: 19, medianDenial: 51 },
-    { name: "Trump 2", party: "rep", years: "2025–present", approved: 40, denied: 17, denialRate: 29.8, medianApproval: 37, medianDenial: 107, highlight: true }
+    { name: "Bush 1",  party: "rep", years: "2001–2005", approved: 214, denied: 46, denialRate: 17.7, medianApproval: 6.0, medianDenial: 33.5 },
+    { name: "Bush 2",  party: "rep", years: "2005–2009", approved: 243, denied: 46, denialRate: 15.9, medianApproval: 11, medianDenial: 64.0 },
+    { name: "Obama 1",  party: "dem", years: "2009–2013", approved: 283, denied: 43, denialRate: 13.2, medianApproval: 12, medianDenial: 44 },
+    { name: "Obama 2",  party: "dem", years: "2013–2017", approved: 194, denied: 45, denialRate: 18.8, medianApproval: 10.0, medianDenial: 29 },
+    { name: "Trump 1",  party: "rep", years: "2017–2021", approved: 230, denied: 35, denialRate: 13.2, medianApproval: 18.0, medianDenial: 61 },
+    { name: "Biden",  party: "dem", years: "2021–2025", approved: 272, denied: 48, denialRate: 15.0, medianApproval: 19.0, medianDenial: 52.0 },
+    { name: "Trump 2",  party: "rep", years: "2025–present", approved: 50, denied: 19, denialRate: 27.5, medianApproval: 38.5, medianDenial: 108, highlight: true }
 ];
 
 const maxMedianApproval = Math.max(...data.map(d => d.medianApproval));

@@ -49,13 +49,32 @@ Chart.defaults.font.family = "'Aptos', 'Segoe UI', Roboto, sans-serif";
 // Aggregate by year (combining both admins if a year is split)
 const yearData = {};
 const rawRows = [
-    {y:2001,app:41,den:11},{y:2002,app:49,den:9},{y:2003,app:56,den:14},{y:2004,app:68,den:12},
-    {y:2005,app:48,den:13},{y:2006,app:52,den:11},{y:2007,app:63,den:7},{y:2008,app:75,den:15},
-    {y:2009,app:59,den:6},{y:2010,app:81,den:11},{y:2011,app:99,den:15},{y:2012,app:47,den:10},
-    {y:2013,app:62,den:6},{y:2014,app:45,den:12},{y:2015,app:43,den:10},{y:2016,app:46,den:17},
-    {y:2017,app:59,den:9},{y:2018,app:59,den:10},{y:2019,app:60,den:5},{y:2020,app:47,den:12},
-    {y:2021,app:56,den:9},{y:2022,app:46,den:9},{y:2023,app:69,den:14},{y:2024,app:102,den:15},
-    {y:2025,app:42,den:13},{y:2026,app:2,den:5}
+    {y:2001,app:41,den:11},
+    {y:2002,app:49,den:9},
+    {y:2003,app:56,den:14},
+    {y:2004,app:68,den:12},
+    {y:2005,app:48,den:13},
+    {y:2006,app:52,den:11},
+    {y:2007,app:63,den:7},
+    {y:2008,app:75,den:15},
+    {y:2009,app:59,den:6},
+    {y:2010,app:81,den:11},
+    {y:2011,app:99,den:15},
+    {y:2012,app:47,den:10},
+    {y:2013,app:62,den:6},
+    {y:2014,app:45,den:12},
+    {y:2015,app:43,den:10},
+    {y:2016,app:46,den:17},
+    {y:2017,app:59,den:9},
+    {y:2018,app:59,den:10},
+    {y:2019,app:60,den:5},
+    {y:2020,app:47,den:12},
+    {y:2021,app:56,den:9},
+    {y:2022,app:46,den:9},
+    {y:2023,app:69,den:14},
+    {y:2024,app:100,den:14},
+    {y:2025,app:44,den:14},
+    {y:2026,app:12,den:7}
 ];
 
 const years = rawRows.map(r => r.y);
